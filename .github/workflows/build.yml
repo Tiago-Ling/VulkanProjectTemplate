@@ -34,8 +34,12 @@ jobs:
       - name: Build
         run: cmake --build build
 
+      # The executable is named after project() in CMakeLists.txt, read back from the CMake cache
       - name: Check outputs
-        run: test -x build/VulkanTemplate && test -f build/shaders/vert.spv && test -f build/shaders/frag.spv
+        run: |
+          name=$(sed -n 's/^CMAKE_PROJECT_NAME:STATIC=//p' build/CMakeCache.txt)
+          test -n "$name" || { echo "CMAKE_PROJECT_NAME not found in build/CMakeCache.txt"; exit 1; }
+          test -x "build/$name" && test -f build/shaders/vert.spv && test -f build/shaders/frag.spv
 
   windows:
     name: Windows (${{ matrix.config }})
@@ -92,9 +96,13 @@ jobs:
       - name: Build
         run: cmake --build build --config ${{ matrix.config }}
 
+      # The executable is named after project() in CMakeLists.txt, read back from the CMake cache
       - name: Check outputs
         shell: pwsh
         run: |
-          foreach ($file in "build\VulkanTemplate.exe", "build\shaders\vert.spv", "build\shaders\frag.spv") {
+          $match = Select-String -Path build\CMakeCache.txt -Pattern '^CMAKE_PROJECT_NAME:STATIC=(.+)$'
+          if (-not $match) { throw "CMAKE_PROJECT_NAME not found in build\CMakeCache.txt" }
+          $name = $match.Matches[0].Groups[1].Value
+          foreach ($file in "build\$name.exe", "build\shaders\vert.spv", "build\shaders\frag.spv") {
             if (-not (Test-Path $file)) { throw "Missing build output: $file" }
           }
