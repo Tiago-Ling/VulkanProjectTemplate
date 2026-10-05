@@ -7,6 +7,8 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+// VK_EXT_layer_settings (used for synchronization validation) needs Vulkan headers 1.3.272 or newer
+#ifdef VK_EXT_layer_settings
 namespace {
     // True if the given layer provides the given instance extension
     bool layerHasExtension(const char* layerName, const char* extensionName) {
@@ -23,6 +25,7 @@ namespace {
         return false;
     }
 }
+#endif
 
 VulkanInstance::VulkanInstance(const char* appName, bool enableValidation)
     : validationEnabled(enableValidation) {
@@ -106,6 +109,7 @@ void VulkanInstance::createInstance(const char* appName) {
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
 
+#ifdef VK_EXT_layer_settings
     // Synchronization validation reports missing or incorrect barriers and semaphores
     const VkBool32 enableSyncValidation = VK_TRUE;
     VkLayerSettingEXT syncSetting{};
@@ -119,6 +123,7 @@ void VulkanInstance::createInstance(const char* appName) {
     layerSettingsInfo.sType = VK_STRUCTURE_TYPE_LAYER_SETTINGS_CREATE_INFO_EXT;
     layerSettingsInfo.settingCount = 1;
     layerSettingsInfo.pSettings = &syncSetting;
+#endif
 
     // Chained messenger covers messages from vkCreateInstance/vkDestroyInstance themselves
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
@@ -128,6 +133,7 @@ void VulkanInstance::createInstance(const char* appName) {
         populateDebugMessengerCreateInfo(debugCreateInfo);
         createInfo.pNext = &debugCreateInfo;
 
+#ifdef VK_EXT_layer_settings
         if (layerHasExtension(validationLayers[0], VK_EXT_LAYER_SETTINGS_EXTENSION_NAME)) {
             extensions.push_back(VK_EXT_LAYER_SETTINGS_EXTENSION_NAME);
             debugCreateInfo.pNext = &layerSettingsInfo;
@@ -136,6 +142,9 @@ void VulkanInstance::createInstance(const char* appName) {
             LOG_WARN("Validation layer lacks " << VK_EXT_LAYER_SETTINGS_EXTENSION_NAME
                 << "; synchronization validation is off");
         }
+#else
+        LOG_WARN("Vulkan headers predate VK_EXT_layer_settings (1.3.272); synchronization validation is off");
+#endif
     }
     else {
         createInfo.enabledLayerCount = 0;
