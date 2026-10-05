@@ -13,7 +13,7 @@ public:
     float getTimeSinceStart() const;  // Total time since start (in seconds)
 
 private:
-    using Clock = std::chrono::high_resolution_clock;
+    using Clock = std::chrono::steady_clock; // monotonic: never jumps when the system clock changes
     using TimePoint = std::chrono::time_point<Clock>;
 
     TimePoint startTime;

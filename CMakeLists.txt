@@ -55,7 +55,10 @@ set(SRC_FILES
 # Executable
 add_executable(${PROJECT_NAME} ${SRC_FILES})
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE APP_TITLE="${APP_TITLE}")
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    APP_TITLE="${APP_TITLE}"
+    GLM_FORCE_DEPTH_ZERO_TO_ONE # Vulkan clip-space depth is [0, 1], not OpenGL's [-1, 1]
+)
 
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /utf-8)

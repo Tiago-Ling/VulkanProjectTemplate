@@ -6,6 +6,7 @@
 #include <fstream>
 #include <sstream>
 #include <cstdlib>
+#include <string>
 #include <vector>
 
 // ===== Logging Macros =====
@@ -14,13 +15,12 @@
 #define LOG_ERROR(msg)   std::cerr << "[ERROR] " << msg << std::endl
 
 // ===== Vulkan Error Checker =====
-// Use this to wrap Vulkan calls and check results
+// Use this to wrap Vulkan calls and check results; throws so destructors and cleanup still run
 #define VK_CHECK(call) \
     do { \
-        VkResult result = (call); \
-        if (result != VK_SUCCESS) { \
-            std::cerr << "[VK_ERROR] " << #call << " failed with code " << result << std::endl; \
-            std::exit(EXIT_FAILURE); \
+        VkResult vkCheckResult = (call); \
+        if (vkCheckResult != VK_SUCCESS) { \
+            throw std::runtime_error(std::string(#call) + " failed with VkResult " + std::to_string(vkCheckResult)); \
         } \
     } while (0)
 
