@@ -6,6 +6,8 @@
 #include <vector>
 #include "VulkanBuffer.hpp"
 
+class VulkanDevice;
+
 struct Vertex {
     glm::vec3 position;
     glm::vec3 color;
@@ -15,8 +17,8 @@ struct Vertex {
 
 class Mesh {
 public:
-    Mesh(VkDevice device,
-        VkPhysicalDevice physicalDevice,
+    // Uploads the data into device-local vertex/index buffers through a staging buffer
+    Mesh(const VulkanDevice& device,
         const std::vector<Vertex>& vertices,
         const std::vector<uint32_t>& indices);
 
@@ -26,7 +28,6 @@ public:
     void draw(VkCommandBuffer commandBuffer) const;
 
 private:
-    VkDevice device;
     std::unique_ptr<VulkanBuffer> vertexBuffer;
     std::unique_ptr<VulkanBuffer> indexBuffer;
 

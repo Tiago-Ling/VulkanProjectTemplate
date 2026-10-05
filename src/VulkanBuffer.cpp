@@ -9,12 +9,15 @@ VulkanBuffer::VulkanBuffer(VkDevice device,
     VkDeviceSize size,
     VkBufferUsageFlags usage,
     VkMemoryPropertyFlags properties)
-    : device(device), physicalDevice(physicalDevice) {
+    : device(device), physicalDevice(physicalDevice), size(size) {
     createBuffer(size, usage, properties);
 }
 
 // Destructor: cleanup buffer and memory
 VulkanBuffer::~VulkanBuffer() {
+    if (mapped) {
+        vkUnmapMemory(device, bufferMemory);
+    }
     if (buffer != VK_NULL_HANDLE) {
         vkDestroyBuffer(device, buffer, nullptr);
     }
@@ -50,12 +53,33 @@ void VulkanBuffer::createBuffer(VkDeviceSize size,
     }
 
     vkBindBufferMemory(device, buffer, bufferMemory, 0);
+
+    // Map host-visible memory once instead of on every write
+    if (properties & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) {
+        if (vkMapMemory(device, bufferMemory, 0, VK_WHOLE_SIZE, 0, &mapped) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to map buffer memory!");
+        }
+        hostCoherent = (properties & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) != 0;
+    }
 }
 
 // Copy data to buffer (used for uniforms, etc.)
-void VulkanBuffer::copyData(const void* srcData, VkDeviceSize size) {
-    void* dst;
-    vkMapMemory(device, bufferMemory, 0, size, 0, &dst);
-    std::memcpy(dst, srcData, static_cast<size_t>(size));
-    vkUnmapMemory(device, bufferMemory);
+void VulkanBuffer::copyData(const void* srcData, VkDeviceSize dataSize) {
+    if (!mapped) {
+        throw std::runtime_error("copyData() requires a host-visible buffer!");
+    }
+    if (dataSize > size) {
+        throw std::runtime_error("copyData() size exceeds buffer size!");
+    }
+
+    std::memcpy(mapped, srcData, static_cast<size_t>(dataSize));
+
+    if (!hostCoherent) {
+        VkMappedMemoryRange range{};
+        range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+        range.memory = bufferMemory;
+        range.offset = 0;
+        range.size = VK_WHOLE_SIZE;
+        vkFlushMappedMemoryRanges(device, 1, &range);
+    }
 }

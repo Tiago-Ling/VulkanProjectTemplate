@@ -20,6 +20,9 @@ VulkanDevice::VulkanDevice(VkInstance instance, VkSurfaceKHR surface)
 
 // Destructor: Cleanup
 VulkanDevice::~VulkanDevice() {
+    if (uploadCommandPool != VK_NULL_HANDLE) {
+        vkDestroyCommandPool(device, uploadCommandPool, nullptr);
+    }
     if (device != VK_NULL_HANDLE) {
         vkDestroyDevice(device, nullptr);
     }
@@ -216,6 +219,64 @@ void VulkanDevice::createLogicalDevice() {
     // Retrieve queue handles
     vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
     vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
+
+    // Short-lived command buffers for setup uploads
+    VkCommandPoolCreateInfo poolInfo{};
+    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+    poolInfo.queueFamilyIndex = indices.graphicsFamily.value();
+    if (vkCreateCommandPool(device, &poolInfo, nullptr, &uploadCommandPool) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create upload command pool!");
+    }
+}
+
+void VulkanDevice::immediateSubmit(const std::function<void(VkCommandBuffer)>& record) const {
+    VkCommandBufferAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.commandPool = uploadCommandPool;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandBufferCount = 1;
+
+    VkCommandBuffer cmd;
+    if (vkAllocateCommandBuffers(device, &allocInfo, &cmd) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to allocate upload command buffer!");
+    }
+
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    vkBeginCommandBuffer(cmd, &beginInfo);
+    record(cmd);
+    vkEndCommandBuffer(cmd);
+
+    VkFenceCreateInfo fenceInfo{};
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    VkFence fence;
+    if (vkCreateFence(device, &fenceInfo, nullptr, &fence) != VK_SUCCESS) {
+        vkFreeCommandBuffers(device, uploadCommandPool, 1, &cmd);
+        throw std::runtime_error("Failed to create upload fence!");
+    }
+
+    VkCommandBufferSubmitInfo cmdInfo{};
+    cmdInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
+    cmdInfo.commandBuffer = cmd;
+
+    VkSubmitInfo2 submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
+    submitInfo.commandBufferInfoCount = 1;
+    submitInfo.pCommandBufferInfos = &cmdInfo;
+
+    VkResult result = vkQueueSubmit2(graphicsQueue, 1, &submitInfo, fence);
+    if (result == VK_SUCCESS) {
+        vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX);
+    }
+
+    vkDestroyFence(device, fence, nullptr);
+    vkFreeCommandBuffers(device, uploadCommandPool, 1, &cmd);
+
+    if (result != VK_SUCCESS) {
+        throw std::runtime_error("Failed to submit upload commands!");
+    }
 }
 
 // Find the first supported depth format, preferring higher precision

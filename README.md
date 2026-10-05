@@ -15,6 +15,7 @@ Forked from the original template created by [Ragulnath M B](https://github.com/
 - **Depth buffer** with automatic format selection
 - **GPU selection** that prefers a discrete GPU and checks swapchain, surface and Vulkan 1.3 support
 - **Validation layers** in Debug builds, with warnings and errors routed through the app's logger
+- Mesh data uploaded through a staging buffer into GPU-only memory; per-frame uniform buffers stay persistently mapped
 - Uniform buffer + descriptor set for model/view/projection matrices
 - Camera, input (keyboard and mouse delta), timer and math helpers
 - GLSL shaders compiled to SPIR-V by the build and loaded from beside the executable

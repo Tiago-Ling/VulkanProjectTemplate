@@ -4,5 +4,5 @@
 
 class CubeMesh : public Mesh {
 public:
-    CubeMesh(VkDevice device, VkPhysicalDevice physicalDevice);
+    explicit CubeMesh(const VulkanDevice& device);
 };

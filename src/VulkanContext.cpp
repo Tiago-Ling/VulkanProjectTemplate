@@ -127,7 +127,7 @@ void VulkanContext::init() {
     VkExtent2D extent = swapchain->getExtent();
     camera = std::make_unique<Camera>(45.0f, extent.width / (float)extent.height, 0.1f, 100.0f);
     timer = std::make_unique<Timer>();
-    mesh = std::make_unique<CubeMesh>(device->getDevice(), device->getPhysicalDevice());
+    mesh = std::make_unique<CubeMesh>(*device);
 
     LOG_INFO("Vulkan Context Initialized.");
 }

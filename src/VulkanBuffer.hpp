@@ -15,7 +15,9 @@ public:
     VkBuffer getBuffer() const { return buffer; }
     VkDeviceMemory getMemory() const { return bufferMemory; }
 
-    // For updating buffer contents (e.g., uniform data)
+    VkDeviceSize getSize() const { return size; }
+
+    // Writes into a host-visible buffer through its persistent mapping (e.g. uniform data, staging)
     void copyData(const void* srcData, VkDeviceSize size);
 
 private:
@@ -23,6 +25,9 @@ private:
     VkPhysicalDevice physicalDevice;
     VkBuffer buffer = VK_NULL_HANDLE;
     VkDeviceMemory bufferMemory = VK_NULL_HANDLE;
+    VkDeviceSize size = 0;
+    void* mapped = nullptr;          // set for host-visible buffers, mapped for the buffer's lifetime
+    bool hostCoherent = false;       // non-coherent memory needs an explicit flush after writes
 
     void createBuffer(VkDeviceSize size,
         VkBufferUsageFlags usage,

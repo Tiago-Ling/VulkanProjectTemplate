@@ -3,6 +3,7 @@
 #include <vulkan/vulkan.h>
 #include <vector>
 #include <optional>
+#include <functional>
 #include "Utils.hpp"
 
 class VulkanDevice {
@@ -28,6 +29,10 @@ public:
 
 
 
+    // Records commands into a one-off command buffer, submits it to the graphics queue and waits
+    // for completion (for setup work such as buffer and image uploads, not per-frame rendering)
+    void immediateSubmit(const std::function<void(VkCommandBuffer)>& record) const;
+
     // Picks a depth format usable as an optimal-tiling depth attachment
     VkFormat findDepthFormat() const;
 
@@ -43,6 +48,7 @@ private:
 
     VkQueue graphicsQueue = VK_NULL_HANDLE;
     VkQueue presentQueue = VK_NULL_HANDLE;
+    VkCommandPool uploadCommandPool = VK_NULL_HANDLE; // for immediateSubmit
 
     VkSurfaceKHR surface;
     VkInstance instance;

@@ -1,7 +1,7 @@
 ﻿#include "CubeMesh.hpp"
 
-CubeMesh::CubeMesh(VkDevice device, VkPhysicalDevice physicalDevice)
-    : Mesh(device, physicalDevice,
+CubeMesh::CubeMesh(const VulkanDevice& device)
+    : Mesh(device,
         // 🟦 Vertices
         {
             // Front face
