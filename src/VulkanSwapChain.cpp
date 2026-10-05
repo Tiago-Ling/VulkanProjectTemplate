@@ -6,8 +6,8 @@
 // Constructor: creates swapchain and image views
 VulkanSwapchain::VulkanSwapchain(VkPhysicalDevice physicalDevice, VkDevice device, VkSurfaceKHR surface,
     uint32_t graphicsFamily, uint32_t presentFamily, uint32_t width, uint32_t height,
-    VkSwapchainKHR oldSwapchain)
-    : device(device), surface(surface), graphicsFamily(graphicsFamily), presentFamily(presentFamily) {
+    bool vsync, VkSwapchainKHR oldSwapchain)
+    : device(device), surface(surface), graphicsFamily(graphicsFamily), presentFamily(presentFamily), vsync(vsync) {
     try {
         createSwapchain(physicalDevice, width, height, oldSwapchain);
         createImageViews();
@@ -56,25 +56,28 @@ VulkanSwapchain::SwapchainSupportDetails VulkanSwapchain::querySwapchainSupport(
     return details;
 }
 
-// Choose a suitable surface format
+// Choose an 8-bit sRGB format so shader output is gamma-encoded by the hardware
 VkSurfaceFormatKHR VulkanSwapchain::chooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats) {
-    for (const auto& format : formats) {
-        if (format.format == VK_FORMAT_B8G8R8A8_SRGB &&
-            format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
-            return format;
+    for (VkFormat preferred : { VK_FORMAT_B8G8R8A8_SRGB, VK_FORMAT_R8G8B8A8_SRGB }) {
+        for (const auto& format : formats) {
+            if (format.format == preferred && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+                return format;
+            }
         }
     }
     return formats[0];
 }
 
-// Choose the best presentation mode
+// FIFO waits for the display's vertical blank: always available and never renders more frames than are shown
 VkPresentModeKHR VulkanSwapchain::choosePresentMode(const std::vector<VkPresentModeKHR>& presentModes) {
-    for (const auto& mode : presentModes) {
-        if (mode == VK_PRESENT_MODE_MAILBOX_KHR) {
-            return mode; // Low-latency triple buffering
+    if (!vsync) {
+        for (const auto& mode : presentModes) {
+            if (mode == VK_PRESENT_MODE_MAILBOX_KHR) {
+                return mode; // Uncapped frame rate without tearing
+            }
         }
     }
-    return VK_PRESENT_MODE_FIFO_KHR; // Always available (V-Sync)
+    return VK_PRESENT_MODE_FIFO_KHR;
 }
 
 // Choose extent (resolution) based on window and surface caps

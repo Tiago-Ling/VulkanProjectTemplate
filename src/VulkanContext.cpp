@@ -13,8 +13,8 @@ struct MVP {
     glm::mat4 proj;
 };
 
-VulkanContext::VulkanContext(uint32_t w, uint32_t h, const char* t)
-    : width(w), height(h), title(t) {
+VulkanContext::VulkanContext(uint32_t w, uint32_t h, const char* t, uint32_t version)
+    : width(w), height(h), title(t), appVersion(version) {
     try {
         init();
     }
@@ -36,9 +36,9 @@ void VulkanContext::init() {
     Input::init(window);
 
 #ifdef NDEBUG
-    instance = std::make_unique<VulkanInstance>(title, false);
+    instance = std::make_unique<VulkanInstance>(title, appVersion, false);
 #else
-    instance = std::make_unique<VulkanInstance>(title, true); // requires VK_LAYER_KHRONOS_validation
+    instance = std::make_unique<VulkanInstance>(title, appVersion, true); // requires VK_LAYER_KHRONOS_validation
 #endif
     vulkanWindow->createAndGetSurface(instance->getInstance());
 
@@ -48,7 +48,7 @@ void VulkanContext::init() {
     uint32_t fbWidth, fbHeight;
     vulkanWindow->getFramebufferSize(fbWidth, fbHeight);
     swapchain = std::make_unique<VulkanSwapchain>(device->getPhysicalDevice(), device->getDevice(), vulkanWindow->getSurface(),
-        device->getGraphicsQueueFamilyIndex(), device->getPresentQueueFamilyIndex(), fbWidth, fbHeight);
+        device->getGraphicsQueueFamilyIndex(), device->getPresentQueueFamilyIndex(), fbWidth, fbHeight, ENABLE_VSYNC);
 
     depthFormat = device->findDepthFormat();
     createDepthResources();
@@ -206,7 +206,7 @@ void VulkanContext::recreateSwapchain() {
     std::unique_ptr<VulkanSwapchain> oldSwapchain = std::move(swapchain);
     swapchain = std::make_unique<VulkanSwapchain>(device->getPhysicalDevice(), device->getDevice(), vulkanWindow->getSurface(),
         device->getGraphicsQueueFamilyIndex(), device->getPresentQueueFamilyIndex(),
-        fbWidth, fbHeight, oldSwapchain->getSwapchain());
+        fbWidth, fbHeight, ENABLE_VSYNC, oldSwapchain->getSwapchain());
     oldSwapchain.reset();
 
     // The pipeline is kept: the surface format does not change and viewport/scissor are dynamic

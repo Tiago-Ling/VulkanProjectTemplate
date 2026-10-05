@@ -6,7 +6,7 @@
 
 class VulkanInstance {
 public:
-    VulkanInstance(const char* appName, bool enableValidation);
+    VulkanInstance(const char* appName, uint32_t appVersion, bool enableValidation);
     ~VulkanInstance();
 
     // Not copyable: a copy would destroy the same handles twice
@@ -27,7 +27,7 @@ private:
 
     std::vector<const char*> getRequiredExtensions();
     bool checkValidationLayerSupport();
-    void createInstance(const char* appName);
+    void createInstance(const char* appName, uint32_t appVersion);
     void setupDebugMessenger();
     static void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 

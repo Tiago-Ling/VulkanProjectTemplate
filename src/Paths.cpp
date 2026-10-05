@@ -29,4 +29,8 @@ namespace Paths {
         return (executableDir() / "shaders" / name).string();
     }
 
+    std::string asset(const std::string& name) {
+        return (executableDir() / "assets" / name).string();
+    }
+
 }

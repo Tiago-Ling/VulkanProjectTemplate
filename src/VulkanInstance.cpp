@@ -27,13 +27,13 @@ namespace {
 }
 #endif
 
-VulkanInstance::VulkanInstance(const char* appName, bool enableValidation)
+VulkanInstance::VulkanInstance(const char* appName, uint32_t appVersion, bool enableValidation)
     : validationEnabled(enableValidation) {
     if (validationEnabled && !checkValidationLayerSupport()) {
         throw std::runtime_error("Validation layers requested but not available!");
     }
     try {
-        createInstance(appName);
+        createInstance(appName, appVersion);
         if (validationEnabled) {
             setupDebugMessenger();
         }
@@ -94,13 +94,13 @@ bool VulkanInstance::checkValidationLayerSupport() {
     return true;
 }
 
-void VulkanInstance::createInstance(const char* appName) {
+void VulkanInstance::createInstance(const char* appName, uint32_t appVersion) {
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     appInfo.pApplicationName = appName;
-    appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.pEngineName = "No Engine";
-    appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+    appInfo.applicationVersion = appVersion;
+    appInfo.pEngineName = nullptr; // set pEngineName and engineVersion when the app is built on an engine
+    appInfo.engineVersion = 0;
     appInfo.apiVersion = VK_API_VERSION_1_3;
 
     auto extensions = getRequiredExtensions();

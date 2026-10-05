@@ -22,10 +22,13 @@
 
 constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
 
+// true: FIFO, capped to the display refresh rate. false: MAILBOX when available (uncapped, keeps the GPU busy)
+constexpr bool ENABLE_VSYNC = true;
 
 class VulkanContext {
 public:
-    VulkanContext(uint32_t width, uint32_t height, const char* title);
+    // appVersion is a VK_MAKE_API_VERSION value, reported to drivers and tools
+    VulkanContext(uint32_t width, uint32_t height, const char* title, uint32_t appVersion);
     ~VulkanContext();
     VulkanContext(const VulkanContext&) = delete;
     VulkanContext& operator=(const VulkanContext&) = delete;
@@ -42,6 +45,7 @@ private:
 
     uint32_t width, height;
     const char* title;
+    uint32_t appVersion;
     uint32_t currentFrame = 0;
 
     GLFWwindow* window = nullptr; // owned by vulkanWindow

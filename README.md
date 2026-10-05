@@ -10,6 +10,8 @@ A small, modular Vulkan 1.3 starting point in modern C++, built with CMake. It o
 
 - **Vulkan 1.3**: dynamic rendering (no render pass or framebuffer objects) and synchronization2 barriers
 - **Swapchain recreation** on resize and when out of date; waits while minimized
+- **VSync by default** (FIFO present mode); set `ENABLE_VSYNC` to `false` in `VulkanContext.hpp` to prefer uncapped MAILBOX
+- **sRGB swapchain** format when the surface offers one, so colors are gamma-encoded correctly
 - **Two frames in flight** with per-frame command buffers and fences, per-image present semaphores
 - **Depth buffer** with automatic format selection
 - **GPU selection** that prefers a discrete GPU and checks swapchain, surface and Vulkan 1.3 support
@@ -17,7 +19,8 @@ A small, modular Vulkan 1.3 starting point in modern C++, built with CMake. It o
 - Mesh data uploaded through a staging buffer into GPU-only memory; per-frame uniform buffers stay persistently mapped
 - Uniform buffer + descriptor set for model/view/projection matrices
 - Camera, input (keyboard and mouse delta), timer and math helpers
-- GLSL shaders compiled to SPIR-V for Vulkan 1.3 by the build, rebuilt when included files change, and loaded from beside the executable
+- GLSL shaders compiled to SPIR-V for Vulkan 1.3 by the build (with debug info in Debug builds), rebuilt when included files change, and loaded from beside the executable
+- An `assets/` folder copied next to the executable on every build, for textures, models and other files
 
 ## Requirements
 
@@ -55,14 +58,16 @@ cmake --build build
 ```
 
 - **Debug** builds enable the validation layer (with synchronization validation) and debug names for Vulkan objects; **Release** (`-DCMAKE_BUILD_TYPE=Release`) disables both.
-- The executable and its `shaders/` folder are placed in the build directory, so it can be launched from any working directory.
+- The executable and its `shaders/` and `assets/` folders are placed in the build directory, so it can be launched from any working directory.
+- Ninja and Makefile builds also write `compile_commands.json` to the build directory for clangd and other tools.
 - On Windows, `cmake -S . -B build -G "Visual Studio 17 2022"` generates a solution with `VulkanTemplate` as the startup project (or open the folder directly in Visual Studio).
 - On laptops with hybrid graphics the discrete GPU is chosen automatically; the selected GPU is printed at startup.
 
 ## Project structure
 
 ```
-CMakeLists.txt        Build configuration (app name, sources, shader compilation)
+CMakeLists.txt        Build configuration (app name and version, sources, shaders, assets)
+assets/               Files copied next to the executable, loaded with Paths::asset()
 shaders/              GLSL sources, compiled to SPIR-V at build time
 src/
   main.cpp            Entry point
@@ -82,8 +87,8 @@ src/
 
 ## Starting a new project
 
-1. Rename the project: change `project(VulkanTemplate)` and `APP_TITLE` at the top of `CMakeLists.txt`.
-2. Replace `CubeMesh` with your own geometry and edit the shaders in `shaders/` (add new ones to the `SHADERS` list in `CMakeLists.txt`).
+1. Rename the project: change `project(VulkanTemplate VERSION 1.0.0)` (name and version) and `APP_TITLE` at the top of `CMakeLists.txt`.
+2. Replace `CubeMesh` with your own geometry and edit the shaders in `shaders/` (add new ones to the `SHADERS` list in `CMakeLists.txt`). Put other files in `assets/` and load them with `Paths::asset("...")`.
 3. Per-frame logic lives in `VulkanContext::drawFrame()`; draw commands are recorded in `VulkanCommand::recordCommandBuffer()`.
 
 ## Credits

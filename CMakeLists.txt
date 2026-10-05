@@ -1,11 +1,14 @@
 cmake_minimum_required(VERSION 3.21) # DEPFILE on custom commands for every generator
-project(VulkanTemplate)
+project(VulkanTemplate VERSION 1.0.0) # the version is reported in VkApplicationInfo
 
 # Display name used for the window title and VkApplicationInfo
 set(APP_TITLE "Vulkan Template")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# compile_commands.json in the build directory, for clangd and other tools (Ninja and Makefile generators)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Vulkan SDK (also locates glslc for shader compilation)
 find_package(Vulkan REQUIRED COMPONENTS glslc)
@@ -57,6 +60,9 @@ add_executable(${PROJECT_NAME} ${SRC_FILES})
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     APP_TITLE="${APP_TITLE}"
+    APP_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
+    APP_VERSION_MINOR=${PROJECT_VERSION_MINOR}
+    APP_VERSION_PATCH=${PROJECT_VERSION_PATCH}
     GLM_FORCE_DEPTH_ZERO_TO_ONE # Vulkan clip-space depth is [0, 1], not OpenGL's [-1, 1]
 )
 
@@ -98,7 +104,8 @@ foreach(SHADER ${SHADERS})
     add_custom_command(
         OUTPUT ${SHADER_OUT}
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/shaders
-        COMMAND Vulkan::glslc --target-env=vulkan1.3 -MD -MF ${SHADER_OUT}.d
+        # Debug builds keep debug info so tools like RenderDoc can show the GLSL source
+        COMMAND Vulkan::glslc --target-env=vulkan1.3 $<$<CONFIG:Debug>:-g> -MD -MF ${SHADER_OUT}.d
             ${CMAKE_CURRENT_SOURCE_DIR}/${SHADER_SRC} -o ${SHADER_OUT}
         DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${SHADER_SRC}
         DEPFILE ${SHADER_OUT}.d
@@ -109,3 +116,15 @@ endforeach()
 
 add_custom_target(shaders DEPENDS ${SPV_FILES})
 add_dependencies(${PROJECT_NAME} shaders)
+
+# Assets: copy assets/ next to the executable on every build (located at runtime via Paths::asset)
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.26)
+    set(ASSET_COPY_COMMAND copy_directory_if_different) # skips unchanged files
+else()
+    set(ASSET_COPY_COMMAND copy_directory)
+endif()
+add_custom_target(assets
+    COMMAND ${CMAKE_COMMAND} -E ${ASSET_COPY_COMMAND} ${CMAKE_CURRENT_SOURCE_DIR}/assets ${CMAKE_BINARY_DIR}/assets
+    COMMENT "Copying assets/"
+)
+add_dependencies(${PROJECT_NAME} assets)

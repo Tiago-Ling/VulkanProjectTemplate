@@ -5,10 +5,11 @@
 
 class VulkanSwapchain {
 public:
+    // vsync uses FIFO (capped to the display refresh rate); without it MAILBOX is preferred when available.
     // Pass the previous swapchain as oldSwapchain when recreating (it must still be alive)
     VulkanSwapchain(VkPhysicalDevice physicalDevice, VkDevice device, VkSurfaceKHR surface,
         uint32_t graphicsFamily, uint32_t presentFamily, uint32_t width, uint32_t height,
-        VkSwapchainKHR oldSwapchain = VK_NULL_HANDLE);
+        bool vsync, VkSwapchainKHR oldSwapchain = VK_NULL_HANDLE);
     ~VulkanSwapchain();
 
     // Not copyable: a copy would destroy the same handles twice
@@ -27,6 +28,7 @@ private:
     VkSurfaceKHR surface;
     uint32_t graphicsFamily;
     uint32_t presentFamily;
+    bool vsync;
 
     std::vector<VkImage> images;
     std::vector<VkImageView> imageViews;
