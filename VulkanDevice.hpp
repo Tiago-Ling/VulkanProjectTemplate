@@ -24,6 +24,9 @@ public:
 
 
 
+    // Picks a depth format usable as an optimal-tiling depth attachment
+    VkFormat findDepthFormat() const;
+
     // Utility to find suitable memory type (used when creating buffers/images)
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
 

@@ -4,9 +4,10 @@
 #include <iostream>
 
 // Constructor: creates swapchain and image views
-VulkanSwapchain::VulkanSwapchain(VkPhysicalDevice physicalDevice, VkDevice device, VkSurfaceKHR surface, uint32_t width, uint32_t height)
+VulkanSwapchain::VulkanSwapchain(VkPhysicalDevice physicalDevice, VkDevice device, VkSurfaceKHR surface, uint32_t width, uint32_t height,
+    VkSwapchainKHR oldSwapchain)
     : device(device), surface(surface) {
-    createSwapchain(physicalDevice, width, height);
+    createSwapchain(physicalDevice, width, height, oldSwapchain);
     createImageViews();
 }
 
@@ -81,7 +82,7 @@ VkExtent2D VulkanSwapchain::chooseExtent(const VkSurfaceCapabilitiesKHR& capabil
 }
 
 // Create swapchain using best config
-void VulkanSwapchain::createSwapchain(VkPhysicalDevice physicalDevice, uint32_t width, uint32_t height) {
+void VulkanSwapchain::createSwapchain(VkPhysicalDevice physicalDevice, uint32_t width, uint32_t height, VkSwapchainKHR oldSwapchain) {
     auto support = querySwapchainSupport(physicalDevice);
 
     VkSurfaceFormatKHR chosenFormat = chooseSurfaceFormat(support.formats);
@@ -111,7 +112,7 @@ void VulkanSwapchain::createSwapchain(VkPhysicalDevice physicalDevice, uint32_t 
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     createInfo.presentMode = chosenPresentMode;
     createInfo.clipped = VK_TRUE;
-    createInfo.oldSwapchain = VK_NULL_HANDLE;
+    createInfo.oldSwapchain = oldSwapchain;
 
     if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapchain) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create swapchain!");

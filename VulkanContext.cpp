@@ -36,13 +36,20 @@ void VulkanContext::init() {
     vulkanWindow->createAndGetSurface(instance->getInstance());
 
     device = new VulkanDevice(instance->getInstance(), vulkanWindow->getSurface());
-    swapchain = new VulkanSwapchain(device->getPhysicalDevice(), device->getDevice(), vulkanWindow->getSurface(), width, height);
-    renderPass = new VulkanRenderPass(device->getDevice(), swapchain->getImageFormat());
-    framebuffer = new VulkanFramebuffer(device->getDevice(), renderPass->get(), swapchain->getImageViews(), swapchain->getExtent());
+
+    uint32_t fbWidth, fbHeight;
+    vulkanWindow->getFramebufferSize(fbWidth, fbHeight);
+    swapchain = new VulkanSwapchain(device->getPhysicalDevice(), device->getDevice(), vulkanWindow->getSurface(), fbWidth, fbHeight);
+
+    depthFormat = device->findDepthFormat();
+    createDepthResources();
+
+    renderPass = new VulkanRenderPass(device->getDevice(), swapchain->getImageFormat(), depthFormat);
+    framebuffer = new VulkanFramebuffer(device->getDevice(), renderPass->get(), swapchain->getImageViews(),
+        depthImage->getImageView(), swapchain->getExtent());
 
     pipeline = new VulkanPipeline(
         device->getDevice(),
-        swapchain->getExtent(),
         renderPass->get(),
         "vert.spv",
         "frag.spv"
@@ -108,17 +115,66 @@ void VulkanContext::init() {
         device->getDevice(),
         device->getGraphicsQueueFamilyIndex(),
         renderPass->get(),
-        swapchain->getExtent(),
-        framebuffer->getFramebuffers(),
-        pipeline->get()
+        pipeline->get(),
+        MAX_FRAMES_IN_FLIGHT
     );
 
-    sync = new VulkanSync(device->getDevice(), MAX_FRAMES_IN_FLIGHT);
-    camera = new Camera(45.0f, width / (float)height, 0.1f, 100.0f);
+    sync = new VulkanSync(device->getDevice(), MAX_FRAMES_IN_FLIGHT, swapchain->getImageViews().size());
+    VkExtent2D extent = swapchain->getExtent();
+    camera = new Camera(45.0f, extent.width / (float)extent.height, 0.1f, 100.0f);
     timer = new Timer();
     mesh = new CubeMesh(device->getDevice(), device->getPhysicalDevice());
 
     LOG_INFO("Vulkan Context Initialized.");
+}
+
+// Depth buffer matching the current swapchain extent (one is enough: frames render sequentially on one queue)
+void VulkanContext::createDepthResources() {
+    VkExtent2D extent = swapchain->getExtent();
+    depthImage = new VulkanImage(
+        device->getDevice(),
+        device->getPhysicalDevice(),
+        extent.width,
+        extent.height,
+        depthFormat,
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+    );
+    depthImage->createImageView(depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+}
+
+// Rebuild everything that depends on the swapchain extent (window resized, or swapchain out of date)
+void VulkanContext::recreateSwapchain() {
+    vulkanWindow->waitWhileMinimized();
+    if (vulkanWindow->shouldClose()) {
+        return;
+    }
+
+    vkDeviceWaitIdle(device->getDevice());
+    vulkanWindow->resetResizedFlag();
+
+    uint32_t fbWidth, fbHeight;
+    vulkanWindow->getFramebufferSize(fbWidth, fbHeight);
+
+    delete framebuffer;
+    delete depthImage;
+
+    // Create the new swapchain while the old one is still alive, then retire the old one
+    VulkanSwapchain* oldSwapchain = swapchain;
+    swapchain = new VulkanSwapchain(device->getPhysicalDevice(), device->getDevice(), vulkanWindow->getSurface(),
+        fbWidth, fbHeight, oldSwapchain->getSwapchain());
+    delete oldSwapchain;
+
+    // The render pass and pipeline are kept: the surface format does not change and viewport/scissor are dynamic
+    createDepthResources();
+    framebuffer = new VulkanFramebuffer(device->getDevice(), renderPass->get(), swapchain->getImageViews(),
+        depthImage->getImageView(), swapchain->getExtent());
+
+    sync->recreateImageSemaphores(swapchain->getImageViews().size());
+
+    VkExtent2D extent = swapchain->getExtent();
+    camera->setAspectRatio(extent.width / (float)extent.height);
 }
 
 void VulkanContext::run() {
@@ -147,8 +203,11 @@ void VulkanContext::drawFrame() {
     );
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-        LOG_WARN("Swapchain out of date — skipping frame.");
+        recreateSwapchain();
         return;
+    }
+    if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+        throw std::runtime_error("Failed to acquire swapchain image!");
     }
 
     sync->resetFence(frameIndex);
@@ -159,13 +218,14 @@ void VulkanContext::drawFrame() {
     MVP mvp{};
     mvp.model = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));
     mvp.view = camera->getViewMatrix();
-    mvp.proj = camera->getProjectionMatrix();
-    mvp.proj[1][1] *= -1.0f; // Vulkan NDC
+    mvp.proj = camera->getProjectionMatrix(); // already Y-flipped for Vulkan
 
     uniformBuffers[frameIndex]->copyData(&mvp, sizeof(MVP));
 
     command->recordCommandBuffer(
-        imageIndex,
+        static_cast<uint32_t>(frameIndex),
+        framebuffer->getFramebuffers()[imageIndex],
+        swapchain->getExtent(),
         mesh,
         camera,
         pipeline->getLayout(),
@@ -181,11 +241,11 @@ void VulkanContext::drawFrame() {
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitStages;
 
-    VkCommandBuffer cmd = command->getCommandBuffer(imageIndex);
+    VkCommandBuffer cmd = command->getCommandBuffer(static_cast<uint32_t>(frameIndex));
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &cmd;
 
-    VkSemaphore signalSemaphores[] = { sync->getRenderFinishedSemaphore(frameIndex) };
+    VkSemaphore signalSemaphores[] = { sync->getRenderFinishedSemaphore(imageIndex) };
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
@@ -201,11 +261,14 @@ void VulkanContext::drawFrame() {
     presentInfo.pImageIndices = &imageIndex;
 
     result = vkQueuePresentKHR(device->getPresentQueue(), &presentInfo);
-    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
-        LOG_WARN("Swapchain suboptimal or outdated — recreate needed");
-    }
-
     currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || vulkanWindow->wasResized()) {
+        recreateSwapchain();
+    }
+    else if (result != VK_SUCCESS) {
+        throw std::runtime_error("Failed to present swapchain image!");
+    }
 }
 
 void VulkanContext::cleanup() {
@@ -226,6 +289,7 @@ void VulkanContext::cleanup() {
     delete command;
     delete pipeline;
     delete framebuffer;
+    delete depthImage;
     delete renderPass;
     delete swapchain;
     delete device;

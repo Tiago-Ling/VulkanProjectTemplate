@@ -19,6 +19,16 @@ public:
 	VkSurfaceKHR getSurface() const { return surface; }
 	void setSurface(VkSurfaceKHR surf) { surface = surf; }
 
+    // Framebuffer size in pixels (may differ from window size on HiDPI displays)
+    void getFramebufferSize(uint32_t& outWidth, uint32_t& outHeight) const;
+
+    // Set when the framebuffer is resized; cleared by the caller once handled
+    bool wasResized() const { return framebufferResized; }
+    void resetResizedFlag() { framebufferResized = false; }
+
+    // Blocks until the window has a non-zero framebuffer (e.g. while minimized)
+    void waitWhileMinimized() const;
+
     bool shouldClose() const;
     void pollEvents() const;
     uint32_t getWidth() const;
@@ -30,4 +40,7 @@ private:
     uint32_t width;
     uint32_t height;
     std::string title;
+    bool framebufferResized = false;
+
+    static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 };

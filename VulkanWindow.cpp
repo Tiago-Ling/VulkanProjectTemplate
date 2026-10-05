@@ -22,6 +22,9 @@ VulkanWindow::VulkanWindow(uint32_t width, uint32_t height, const std::string& t
         throw std::runtime_error("Failed to create GLFW window!");
     }
 
+    glfwSetWindowUserPointer(window, this);
+    glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+
     std::cout << "GLFW window created successfully.\n";
 }
 
@@ -43,6 +46,28 @@ VkSurfaceKHR VulkanWindow::createAndGetSurface(VkInstance instance) {
     return surface;
 }
 
+
+// Flag resizes so the swapchain gets recreated on the next frame
+void VulkanWindow::framebufferResizeCallback(GLFWwindow* window, int width, int height) {
+    auto* self = static_cast<VulkanWindow*>(glfwGetWindowUserPointer(window));
+    self->framebufferResized = true;
+}
+
+void VulkanWindow::getFramebufferSize(uint32_t& outWidth, uint32_t& outHeight) const {
+    int w = 0, h = 0;
+    glfwGetFramebufferSize(window, &w, &h);
+    outWidth = static_cast<uint32_t>(w);
+    outHeight = static_cast<uint32_t>(h);
+}
+
+void VulkanWindow::waitWhileMinimized() const {
+    int w = 0, h = 0;
+    glfwGetFramebufferSize(window, &w, &h);
+    while ((w == 0 || h == 0) && !glfwWindowShouldClose(window)) {
+        glfwWaitEvents();
+        glfwGetFramebufferSize(window, &w, &h);
+    }
+}
 
 // Check if the window should close (user pressed close)
 bool VulkanWindow::shouldClose() const {

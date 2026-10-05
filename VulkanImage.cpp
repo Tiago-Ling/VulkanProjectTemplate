@@ -16,6 +16,9 @@ VulkanImage::VulkanImage(VkDevice device,
 
 // Destructor
 VulkanImage::~VulkanImage() {
+    if (imageView != VK_NULL_HANDLE) {
+        vkDestroyImageView(device, imageView, nullptr);
+    }
     if (image != VK_NULL_HANDLE) {
         vkDestroyImage(device, image, nullptr);
     }
@@ -80,7 +83,6 @@ VkImageView VulkanImage::createImageView(VkFormat format, VkImageAspectFlags asp
     viewInfo.subresourceRange.baseArrayLayer = 0;
     viewInfo.subresourceRange.layerCount = 1;
 
-    VkImageView imageView;
     if (vkCreateImageView(device, &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create image view!");
     }

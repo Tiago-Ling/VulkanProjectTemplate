@@ -4,17 +4,14 @@
 VulkanCommand::VulkanCommand(VkDevice device,
     uint32_t queueFamilyIndex,
     VkRenderPass renderPass,
-    VkExtent2D extent,
-    const std::vector<VkFramebuffer>& framebuffers,
-    VkPipeline pipeline)
+    VkPipeline pipeline,
+    size_t frameCount)
     : device(device),
     renderPass(renderPass),
-    extent(extent),
-    framebuffers(framebuffers),
     pipeline(pipeline) {
 
     createCommandPool(queueFamilyIndex);
-    allocateCommandBuffers(framebuffers.size());
+    allocateCommandBuffers(frameCount);
 }
 
 VulkanCommand::~VulkanCommand() {
@@ -51,13 +48,15 @@ VkCommandBuffer VulkanCommand::getCommandBuffer(uint32_t index) const {
 }
 
 void VulkanCommand::recordCommandBuffer(
-    uint32_t imageIndex,
+    uint32_t frameIndex,
+    VkFramebuffer framebuffer,
+    VkExtent2D extent,
     Mesh* mesh,
     Camera* camera,
     VkPipelineLayout pipelineLayout,
     VkDescriptorSet descriptorSet)
 {
-    VkCommandBuffer cmd = commandBuffers[imageIndex];
+    VkCommandBuffer cmd = commandBuffers[frameIndex];
 
     // --- Begin command buffer recording ---
     VkCommandBufferBeginInfo beginInfo{};
@@ -73,18 +72,35 @@ void VulkanCommand::recordCommandBuffer(
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = renderPass;
-    renderPassInfo.framebuffer = framebuffers[imageIndex];
+    renderPassInfo.framebuffer = framebuffer;
     renderPassInfo.renderArea.offset = { 0, 0 };
     renderPassInfo.renderArea.extent = extent;
 
-    VkClearValue clearColor = { {{ 0.1f, 0.1f, 0.1f, 1.0f }} };
-    renderPassInfo.clearValueCount = 1;
-    renderPassInfo.pClearValues = &clearColor;
+    VkClearValue clearValues[2]{};
+    clearValues[0].color = { { 0.1f, 0.1f, 0.1f, 1.0f } };
+    clearValues[1].depthStencil = { 1.0f, 0 };
+    renderPassInfo.clearValueCount = 2;
+    renderPassInfo.pClearValues = clearValues;
 
     vkCmdBeginRenderPass(cmd, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
     // --- Bind the graphics pipeline ---
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+
+    // --- Viewport & scissor are dynamic so the pipeline survives swapchain resizes ---
+    VkViewport viewport{};
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = static_cast<float>(extent.width);
+    viewport.height = static_cast<float>(extent.height);
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+    vkCmdSetViewport(cmd, 0, 1, &viewport);
+
+    VkRect2D scissor{};
+    scissor.offset = { 0, 0 };
+    scissor.extent = extent;
+    vkCmdSetScissor(cmd, 0, 1, &scissor);
 
     // --- Bind the descriptor set (for uniforms like MVP matrices) ---
     vkCmdBindDescriptorSets(

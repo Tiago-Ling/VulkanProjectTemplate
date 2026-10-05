@@ -5,7 +5,9 @@
 
 class VulkanSwapchain {
 public:
-    VulkanSwapchain(VkPhysicalDevice physicalDevice, VkDevice device, VkSurfaceKHR surface, uint32_t width, uint32_t height);
+    // Pass the previous swapchain as oldSwapchain when recreating (it must still be alive)
+    VulkanSwapchain(VkPhysicalDevice physicalDevice, VkDevice device, VkSurfaceKHR surface, uint32_t width, uint32_t height,
+        VkSwapchainKHR oldSwapchain = VK_NULL_HANDLE);
     ~VulkanSwapchain();
 
     VkSwapchainKHR getSwapchain() const { return swapchain; }
@@ -35,6 +37,6 @@ private:
     VkPresentModeKHR choosePresentMode(const std::vector<VkPresentModeKHR>& presentModes);
     VkExtent2D chooseExtent(const VkSurfaceCapabilitiesKHR& capabilities, uint32_t width, uint32_t height);
 
-    void createSwapchain(VkPhysicalDevice physicalDevice, uint32_t width, uint32_t height);
+    void createSwapchain(VkPhysicalDevice physicalDevice, uint32_t width, uint32_t height, VkSwapchainKHR oldSwapchain);
     void createImageViews();
 };

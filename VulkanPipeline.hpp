@@ -7,7 +7,6 @@
 class VulkanPipeline {
 public:
     VulkanPipeline(VkDevice device,
-        VkExtent2D extent,
         VkRenderPass renderPass,
         const std::string& vertShaderPath,
         const std::string& fragShaderPath);
@@ -27,8 +26,7 @@ private:
     std::vector<char> readFile(const std::string& filename);
     VkShaderModule createShaderModule(const std::vector<char>& code);
 
-    void createGraphicsPipeline(VkExtent2D extent,
-        VkRenderPass renderPass,
+    void createGraphicsPipeline(VkRenderPass renderPass,
         const std::string& vertShaderPath,
         const std::string& fragShaderPath);
 };

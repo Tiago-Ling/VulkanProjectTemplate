@@ -19,6 +19,7 @@
 #include "Timer.hpp"
 #include "Mesh.hpp"
 #include "VulkanBuffer.hpp"
+#include "VulkanImage.hpp"
 
 constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -33,6 +34,8 @@ private:
     void init();
     void drawFrame();
     void cleanup();
+    void createDepthResources();
+    void recreateSwapchain();
 
     uint32_t width, height;
     const char* title;
@@ -46,6 +49,8 @@ private:
     VulkanSwapchain* swapchain;
     VulkanRenderPass* renderPass;
     VulkanFramebuffer* framebuffer;
+    VulkanImage* depthImage;
+    VkFormat depthFormat;
     VulkanPipeline* pipeline;
     VulkanCommand* command;
     VulkanSync* sync;

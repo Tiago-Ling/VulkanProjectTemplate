@@ -8,6 +8,7 @@ public:
     VulkanFramebuffer(VkDevice device,
         VkRenderPass renderPass,
         const std::vector<VkImageView>& swapchainImageViews,
+        VkImageView depthImageView,
         VkExtent2D extent);
 
     ~VulkanFramebuffer();
@@ -20,5 +21,6 @@ private:
 
     void createFramebuffers(VkRenderPass renderPass,
         const std::vector<VkImageView>& swapchainImageViews,
+        VkImageView depthImageView,
         VkExtent2D extent);
 };

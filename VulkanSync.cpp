@@ -2,24 +2,24 @@
 #include <stdexcept>
 
 // Constructor: create semaphores and fences
-VulkanSync::VulkanSync(VkDevice device, size_t maxFramesInFlight)
+VulkanSync::VulkanSync(VkDevice device, size_t maxFramesInFlight, size_t swapchainImageCount)
     : device(device), maxFrames(maxFramesInFlight) {
     createSyncObjects();
+    createImageSemaphores(swapchainImageCount);
 }
 
 // Destructor: cleanup sync objects
 VulkanSync::~VulkanSync() {
     for (size_t i = 0; i < maxFrames; ++i) {
         vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
-        vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
         vkDestroyFence(device, inFlightFences[i], nullptr);
     }
+    destroyImageSemaphores();
 }
 
-// Create Vulkan semaphores and fences
+// Create per-frame Vulkan semaphores and fences
 void VulkanSync::createSyncObjects() {
     imageAvailableSemaphores.resize(maxFrames);
-    renderFinishedSemaphores.resize(maxFrames);
     inFlightFences.resize(maxFrames);
 
     VkSemaphoreCreateInfo semaphoreInfo{};
@@ -31,11 +31,37 @@ void VulkanSync::createSyncObjects() {
 
     for (size_t i = 0; i < maxFrames; ++i) {
         if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
-            vkCreateSemaphore(device, &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS ||
             vkCreateFence(device, &fenceInfo, nullptr, &inFlightFences[i]) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create synchronization objects!");
         }
     }
+}
+
+// Create one render-finished semaphore per swapchain image
+void VulkanSync::createImageSemaphores(size_t swapchainImageCount) {
+    renderFinishedSemaphores.resize(swapchainImageCount);
+
+    VkSemaphoreCreateInfo semaphoreInfo{};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    for (size_t i = 0; i < swapchainImageCount; ++i) {
+        if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create synchronization objects!");
+        }
+    }
+}
+
+void VulkanSync::destroyImageSemaphores() {
+    for (auto semaphore : renderFinishedSemaphores) {
+        vkDestroySemaphore(device, semaphore, nullptr);
+    }
+    renderFinishedSemaphores.clear();
+}
+
+// Caller must ensure the device is idle (done during swapchain recreation)
+void VulkanSync::recreateImageSemaphores(size_t swapchainImageCount) {
+    destroyImageSemaphores();
+    createImageSemaphores(swapchainImageCount);
 }
 
 // Wait for fence of a given frame
@@ -53,8 +79,8 @@ VkSemaphore VulkanSync::getImageAvailableSemaphore(size_t frameIndex) const {
     return imageAvailableSemaphores[frameIndex];
 }
 
-VkSemaphore VulkanSync::getRenderFinishedSemaphore(size_t frameIndex) const {
-    return renderFinishedSemaphores[frameIndex];
+VkSemaphore VulkanSync::getRenderFinishedSemaphore(size_t imageIndex) const {
+    return renderFinishedSemaphores[imageIndex];
 }
 
 VkFence VulkanSync::getInFlightFence(size_t frameIndex) const {

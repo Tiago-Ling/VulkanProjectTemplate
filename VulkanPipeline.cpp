@@ -41,12 +41,11 @@ VkShaderModule VulkanPipeline::createShaderModule(const std::vector<char>& code)
 
 // Constructor
 VulkanPipeline::VulkanPipeline(VkDevice device,
-    VkExtent2D extent,
     VkRenderPass renderPass,
     const std::string& vertShaderPath,
     const std::string& fragShaderPath)
     : device(device) {
-    createGraphicsPipeline(extent, renderPass, vertShaderPath, fragShaderPath);
+    createGraphicsPipeline(renderPass, vertShaderPath, fragShaderPath);
 }
 
 // Destructor
@@ -63,8 +62,7 @@ VulkanPipeline::~VulkanPipeline() {
 }
 
 // Create the full graphics pipeline
-void VulkanPipeline::createGraphicsPipeline(VkExtent2D extent,
-    VkRenderPass renderPass,
+void VulkanPipeline::createGraphicsPipeline(VkRenderPass renderPass,
     const std::string& vertShaderPath,
     const std::string& fragShaderPath) {
     auto vertShaderCode = readFile(vertShaderPath);
@@ -104,25 +102,17 @@ void VulkanPipeline::createGraphicsPipeline(VkExtent2D extent,
     inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     inputAssembly.primitiveRestartEnable = VK_FALSE;
 
-    // === Viewport & Scissor ===
-    VkViewport viewport{};
-    viewport.x = 0.0f;
-    viewport.y = 0.0f;
-    viewport.width = static_cast<float>(extent.width);
-    viewport.height = static_cast<float>(extent.height);
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
-
-    VkRect2D scissor{};
-    scissor.offset = { 0, 0 };
-    scissor.extent = extent;
-
+    // === Viewport & Scissor (dynamic, set at record time) ===
     VkPipelineViewportStateCreateInfo viewportState{};
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
     viewportState.viewportCount = 1;
-    viewportState.pViewports = &viewport;
     viewportState.scissorCount = 1;
-    viewportState.pScissors = &scissor;
+
+    VkDynamicState dynamicStates[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+    VkPipelineDynamicStateCreateInfo dynamicState{};
+    dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynamicState.dynamicStateCount = 2;
+    dynamicState.pDynamicStates = dynamicStates;
 
     // === Rasterizer ===
     VkPipelineRasterizationStateCreateInfo rasterizer{};
@@ -132,13 +122,22 @@ void VulkanPipeline::createGraphicsPipeline(VkExtent2D extent,
     rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth = 1.0f;
     rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-    rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+    rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE; // meshes use CCW winding; Camera flips Y for Vulkan
     rasterizer.depthBiasEnable = VK_FALSE;
 
     // === Multisampling ===
     VkPipelineMultisampleStateCreateInfo multisampling{};
     multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+    // === Depth Testing ===
+    VkPipelineDepthStencilStateCreateInfo depthStencil{};
+    depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthStencil.depthTestEnable = VK_TRUE;
+    depthStencil.depthWriteEnable = VK_TRUE;
+    depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+    depthStencil.depthBoundsTestEnable = VK_FALSE;
+    depthStencil.stencilTestEnable = VK_FALSE;
 
     // === Color Blending ===
     VkPipelineColorBlendAttachmentState colorBlendAttachment{};
@@ -191,6 +190,8 @@ void VulkanPipeline::createGraphicsPipeline(VkExtent2D extent,
     pipelineInfo.pViewportState = &viewportState;
     pipelineInfo.pRasterizationState = &rasterizer;
     pipelineInfo.pMultisampleState = &multisampling;
+    pipelineInfo.pDepthStencilState = &depthStencil;
+    pipelineInfo.pDynamicState = &dynamicState;
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.layout = pipelineLayout;
     pipelineInfo.renderPass = renderPass;
