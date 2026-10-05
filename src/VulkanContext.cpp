@@ -2,6 +2,7 @@
 #include "Input.hpp"
 #include "Utils.hpp"
 #include "CubeMesh.hpp"
+#include "Paths.hpp"
 #include <stdexcept>
 #include <iostream>
 #include <glm/gtc/matrix_transform.hpp>
@@ -55,8 +56,8 @@ void VulkanContext::init() {
         device->getDevice(),
         swapchain->getImageFormat(),
         depthFormat,
-        "vert.spv",
-        "frag.spv"
+        Paths::shader("vert.spv"),
+        Paths::shader("frag.spv")
     );
 
     // Create Uniform Buffers
