@@ -16,32 +16,32 @@ find_path(GLM_INCLUDE_DIR glm/glm.hpp REQUIRED)
 
 # Source files
 set(SRC_FILES
-    main.cpp
-    Camera.cpp
-    CubeMesh.cpp
-    Input.cpp
-    Mesh.cpp
-    ShaderLoader.cpp
-    Timer.cpp
-    VulkanBuffer.cpp
-    VulkanCommand.cpp
-    VulkanContext.cpp
-    VulkanDevice.cpp
-    VulkanFrameBuffer.cpp
-    VulkanImage.cpp
-    VulkanInstance.cpp
-    VulkanPipeline.cpp
-    VulkanRenderPass.cpp
-    VulkanSwapChain.cpp
-    VulkanSync.cpp
-    VulkanWindow.cpp
+    src/main.cpp
+    src/Camera.cpp
+    src/CubeMesh.cpp
+    src/Input.cpp
+    src/Mesh.cpp
+    src/ShaderLoader.cpp
+    src/Timer.cpp
+    src/VulkanBuffer.cpp
+    src/VulkanCommand.cpp
+    src/VulkanContext.cpp
+    src/VulkanDevice.cpp
+    src/VulkanFrameBuffer.cpp
+    src/VulkanImage.cpp
+    src/VulkanInstance.cpp
+    src/VulkanPipeline.cpp
+    src/VulkanRenderPass.cpp
+    src/VulkanSwapChain.cpp
+    src/VulkanSync.cpp
+    src/VulkanWindow.cpp
 )
 
 # Executable
 add_executable(${PROJECT_NAME} ${SRC_FILES})
 
 # Include directories
-target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${GLM_INCLUDE_DIR})
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${GLM_INCLUDE_DIR})
 
 # Link dependencies
 target_link_libraries(${PROJECT_NAME}
@@ -52,8 +52,8 @@ target_link_libraries(${PROJECT_NAME}
 
 # Shaders: compile GLSL to SPIR-V next to the executable (loaded relative to the working directory)
 set(SHADERS
-    vertex.vert:vert.spv
-    fragment.frag:frag.spv
+    shaders/vertex.vert:vert.spv
+    shaders/fragment.frag:frag.spv
 )
 
 set(SPV_FILES)
