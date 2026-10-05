@@ -45,8 +45,7 @@ Older releases may lack `glslc`; install the [LunarG Vulkan SDK](https://vulkan.
 ### Windows
 
 1. Install the [LunarG Vulkan SDK](https://vulkan.lunarg.com/) (provides headers, loader, `glslc` and validation layers).
-2. Install GLFW and GLM, for example with [vcpkg](https://vcpkg.io/): `vcpkg install glfw3 glm`.
-3. Pass the vcpkg toolchain when configuring: `-DCMAKE_TOOLCHAIN_FILE=<vcpkg-root>/scripts/buildsystems/vcpkg.cmake`.
+2. Install [vcpkg](https://vcpkg.io/) and pass its toolchain when configuring: `-DCMAKE_TOOLCHAIN_FILE=<vcpkg-root>/scripts/buildsystems/vcpkg.cmake`. GLFW and GLM are then installed automatically from `vcpkg.json`.
 
 ## Build and run
 

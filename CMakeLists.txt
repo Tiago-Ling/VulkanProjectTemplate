@@ -22,7 +22,9 @@ endif()
 
 # GLM (header-only math library): CMake package, falling back to a header search
 find_package(glm CONFIG QUIET)
-if(NOT glm_FOUND)
+if(glm_FOUND AND NOT TARGET glm::glm AND TARGET glm)
+    add_library(glm::glm ALIAS glm) # older GLM packages only export "glm"
+elseif(NOT glm_FOUND)
     find_path(GLM_INCLUDE_DIR glm/glm.hpp REQUIRED)
     add_library(glm::glm INTERFACE IMPORTED)
     target_include_directories(glm::glm INTERFACE ${GLM_INCLUDE_DIR})
