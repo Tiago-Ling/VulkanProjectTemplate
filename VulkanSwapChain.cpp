@@ -4,9 +4,10 @@
 #include <iostream>
 
 // Constructor: creates swapchain and image views
-VulkanSwapchain::VulkanSwapchain(VkPhysicalDevice physicalDevice, VkDevice device, VkSurfaceKHR surface, uint32_t width, uint32_t height,
+VulkanSwapchain::VulkanSwapchain(VkPhysicalDevice physicalDevice, VkDevice device, VkSurfaceKHR surface,
+    uint32_t graphicsFamily, uint32_t presentFamily, uint32_t width, uint32_t height,
     VkSwapchainKHR oldSwapchain)
-    : device(device), surface(surface) {
+    : device(device), surface(surface), graphicsFamily(graphicsFamily), presentFamily(presentFamily) {
     createSwapchain(physicalDevice, width, height, oldSwapchain);
     createImageViews();
 }
@@ -104,10 +105,16 @@ void VulkanSwapchain::createSwapchain(VkPhysicalDevice physicalDevice, uint32_t 
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    // Assume graphics and present queues are the same (optimize later)
-    uint32_t queueFamilyIndices[] = { 0 };
-
-    createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    // Images are shared between queue families only when graphics and present differ
+    uint32_t queueFamilyIndices[] = { graphicsFamily, presentFamily };
+    if (graphicsFamily != presentFamily) {
+        createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+        createInfo.queueFamilyIndexCount = 2;
+        createInfo.pQueueFamilyIndices = queueFamilyIndices;
+    }
+    else {
+        createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    }
     createInfo.preTransform = support.capabilities.currentTransform;
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     createInfo.presentMode = chosenPresentMode;

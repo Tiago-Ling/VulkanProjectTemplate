@@ -39,7 +39,8 @@ void VulkanContext::init() {
 
     uint32_t fbWidth, fbHeight;
     vulkanWindow->getFramebufferSize(fbWidth, fbHeight);
-    swapchain = new VulkanSwapchain(device->getPhysicalDevice(), device->getDevice(), vulkanWindow->getSurface(), fbWidth, fbHeight);
+    swapchain = new VulkanSwapchain(device->getPhysicalDevice(), device->getDevice(), vulkanWindow->getSurface(),
+        device->getGraphicsQueueFamilyIndex(), device->getPresentQueueFamilyIndex(), fbWidth, fbHeight);
 
     depthFormat = device->findDepthFormat();
     createDepthResources();
@@ -163,6 +164,7 @@ void VulkanContext::recreateSwapchain() {
     // Create the new swapchain while the old one is still alive, then retire the old one
     VulkanSwapchain* oldSwapchain = swapchain;
     swapchain = new VulkanSwapchain(device->getPhysicalDevice(), device->getDevice(), vulkanWindow->getSurface(),
+        device->getGraphicsQueueFamilyIndex(), device->getPresentQueueFamilyIndex(),
         fbWidth, fbHeight, oldSwapchain->getSwapchain());
     delete oldSwapchain;
 
@@ -179,7 +181,7 @@ void VulkanContext::recreateSwapchain() {
 
 void VulkanContext::run() {
     while (!vulkanWindow->shouldClose()) {
-        vulkanWindow->pollEvents();
+        Input::pollEvents(); // polls GLFW events and updates key/mouse state
         timer->update();
         drawFrame();
     }

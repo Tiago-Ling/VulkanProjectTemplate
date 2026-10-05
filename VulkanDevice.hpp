@@ -21,6 +21,9 @@ public:
     uint32_t getGraphicsQueueFamilyIndex() const {
         return queueIndices.graphicsFamily.value();
     }
+    uint32_t getPresentQueueFamilyIndex() const {
+        return queueIndices.presentFamily.value();
+    }
 
 
 
@@ -54,6 +57,9 @@ private:
 
     void pickPhysicalDevice();
     bool isDeviceSuitable(VkPhysicalDevice device);
+    bool checkDeviceExtensionSupport(VkPhysicalDevice device);
+    bool checkSurfaceSupport(VkPhysicalDevice device);
+    int rateDevice(VkPhysicalDevice device);
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device); // still private
     void createLogicalDevice();
 

@@ -6,7 +6,8 @@
 class VulkanSwapchain {
 public:
     // Pass the previous swapchain as oldSwapchain when recreating (it must still be alive)
-    VulkanSwapchain(VkPhysicalDevice physicalDevice, VkDevice device, VkSurfaceKHR surface, uint32_t width, uint32_t height,
+    VulkanSwapchain(VkPhysicalDevice physicalDevice, VkDevice device, VkSurfaceKHR surface,
+        uint32_t graphicsFamily, uint32_t presentFamily, uint32_t width, uint32_t height,
         VkSwapchainKHR oldSwapchain = VK_NULL_HANDLE);
     ~VulkanSwapchain();
 
@@ -19,6 +20,8 @@ private:
     VkSwapchainKHR swapchain = VK_NULL_HANDLE;
     VkDevice device;
     VkSurfaceKHR surface;
+    uint32_t graphicsFamily;
+    uint32_t presentFamily;
 
     std::vector<VkImage> images;
     std::vector<VkImageView> imageViews;
