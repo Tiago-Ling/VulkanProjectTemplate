@@ -7,6 +7,19 @@
 #include "Mesh.hpp"
 #include "ShaderLoader.hpp"
 
+namespace {
+    // Destroys a shader module when it goes out of scope, including when pipeline creation throws
+    struct ScopedShaderModule {
+        VkDevice device;
+        VkShaderModule module;
+
+        ScopedShaderModule(VkDevice device, VkShaderModule module) : device(device), module(module) {}
+        ~ScopedShaderModule() { vkDestroyShaderModule(device, module, nullptr); }
+        ScopedShaderModule(const ScopedShaderModule&) = delete;
+        ScopedShaderModule& operator=(const ScopedShaderModule&) = delete;
+    };
+}
+
 // Constructor
 VulkanPipeline::VulkanPipeline(VkDevice device,
     VkFormat colorFormat,
@@ -14,11 +27,21 @@ VulkanPipeline::VulkanPipeline(VkDevice device,
     const std::string& vertShaderPath,
     const std::string& fragShaderPath)
     : device(device) {
-    createGraphicsPipeline(colorFormat, depthFormat, vertShaderPath, fragShaderPath);
+    try {
+        createGraphicsPipeline(colorFormat, depthFormat, vertShaderPath, fragShaderPath);
+    }
+    catch (...) {
+        destroy(); // the destructor does not run when the constructor throws
+        throw;
+    }
 }
 
 // Destructor
 VulkanPipeline::~VulkanPipeline() {
+    destroy();
+}
+
+void VulkanPipeline::destroy() {
     if (pipeline != VK_NULL_HANDLE) {
         vkDestroyPipeline(device, pipeline, nullptr);
     }
@@ -38,19 +61,20 @@ void VulkanPipeline::createGraphicsPipeline(VkFormat colorFormat,
     auto vertShaderCode = ShaderLoader::readSPIRV(vertShaderPath);
     auto fragShaderCode = ShaderLoader::readSPIRV(fragShaderPath);
 
-    VkShaderModule vertShaderModule = ShaderLoader::createShaderModule(device, vertShaderCode);
-    VkShaderModule fragShaderModule = ShaderLoader::createShaderModule(device, fragShaderCode);
+    // Only needed until the pipeline is created; destroyed at the end of this function
+    ScopedShaderModule vertShaderModule(device, ShaderLoader::createShaderModule(device, vertShaderCode));
+    ScopedShaderModule fragShaderModule(device, ShaderLoader::createShaderModule(device, fragShaderCode));
 
     VkPipelineShaderStageCreateInfo vertStage{};
     vertStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     vertStage.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    vertStage.module = vertShaderModule;
+    vertStage.module = vertShaderModule.module;
     vertStage.pName = "main";
 
     VkPipelineShaderStageCreateInfo fragStage{};
     fragStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     fragStage.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fragStage.module = fragShaderModule;
+    fragStage.module = fragShaderModule.module;
     fragStage.pName = "main";
 
     VkPipelineShaderStageCreateInfo shaderStages[] = { vertStage, fragStage };
@@ -177,8 +201,4 @@ void VulkanPipeline::createGraphicsPipeline(VkFormat colorFormat,
     if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create graphics pipeline!");
     }
-
-    // === Cleanup Shader Modules ===
-    vkDestroyShaderModule(device, vertShaderModule, nullptr);
-    vkDestroyShaderModule(device, fragShaderModule, nullptr);
 }

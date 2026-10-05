@@ -12,6 +12,10 @@ public:
 
     ~VulkanBuffer();
 
+    // Not copyable: a copy would destroy the same buffer and memory twice
+    VulkanBuffer(const VulkanBuffer&) = delete;
+    VulkanBuffer& operator=(const VulkanBuffer&) = delete;
+
     VkBuffer getBuffer() const { return buffer; }
     VkDeviceMemory getMemory() const { return bufferMemory; }
 
@@ -32,4 +36,5 @@ private:
     void createBuffer(VkDeviceSize size,
         VkBufferUsageFlags usage,
         VkMemoryPropertyFlags properties);
+    void destroy();
 };

@@ -12,11 +12,21 @@ VulkanImage::VulkanImage(VkDevice device,
     VkImageUsageFlags usage,
     VkMemoryPropertyFlags properties)
     : device(device), physicalDevice(physicalDevice) {
-    createImage(width, height, format, tiling, usage, properties);
+    try {
+        createImage(width, height, format, tiling, usage, properties);
+    }
+    catch (...) {
+        destroy(); // the destructor does not run when the constructor throws
+        throw;
+    }
 }
 
 // Destructor
 VulkanImage::~VulkanImage() {
+    destroy();
+}
+
+void VulkanImage::destroy() {
     if (imageView != VK_NULL_HANDLE) {
         vkDestroyImageView(device, imageView, nullptr);
     }

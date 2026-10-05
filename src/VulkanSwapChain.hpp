@@ -11,6 +11,10 @@ public:
         VkSwapchainKHR oldSwapchain = VK_NULL_HANDLE);
     ~VulkanSwapchain();
 
+    // Not copyable: a copy would destroy the same handles twice
+    VulkanSwapchain(const VulkanSwapchain&) = delete;
+    VulkanSwapchain& operator=(const VulkanSwapchain&) = delete;
+
     VkSwapchainKHR getSwapchain() const { return swapchain; }
     const std::vector<VkImage>& getImages() const { return images; }
     const std::vector<VkImageView>& getImageViews() const { return imageViews; }
@@ -43,4 +47,5 @@ private:
 
     void createSwapchain(VkPhysicalDevice physicalDevice, uint32_t width, uint32_t height, VkSwapchainKHR oldSwapchain);
     void createImageViews();
+    void destroy();
 };

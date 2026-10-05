@@ -15,11 +15,21 @@ namespace {
 VulkanDevice::VulkanDevice(VkInstance instance, VkSurfaceKHR surface)
     : instance(instance), surface(surface) {
     pickPhysicalDevice();
-    createLogicalDevice();
+    try {
+        createLogicalDevice();
+    }
+    catch (...) {
+        destroy(); // the destructor does not run when the constructor throws
+        throw;
+    }
 }
 
 // Destructor: Cleanup
 VulkanDevice::~VulkanDevice() {
+    destroy();
+}
+
+void VulkanDevice::destroy() {
     if (uploadCommandPool != VK_NULL_HANDLE) {
         vkDestroyCommandPool(device, uploadCommandPool, nullptr);
     }

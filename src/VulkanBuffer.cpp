@@ -10,11 +10,21 @@ VulkanBuffer::VulkanBuffer(VkDevice device,
     VkBufferUsageFlags usage,
     VkMemoryPropertyFlags properties)
     : device(device), physicalDevice(physicalDevice), size(size) {
-    createBuffer(size, usage, properties);
+    try {
+        createBuffer(size, usage, properties);
+    }
+    catch (...) {
+        destroy(); // the destructor does not run when the constructor throws
+        throw;
+    }
 }
 
 // Destructor: cleanup buffer and memory
 VulkanBuffer::~VulkanBuffer() {
+    destroy();
+}
+
+void VulkanBuffer::destroy() {
     if (mapped) {
         vkUnmapMemory(device, bufferMemory);
     }

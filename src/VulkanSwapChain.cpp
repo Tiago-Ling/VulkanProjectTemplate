@@ -8,13 +8,23 @@ VulkanSwapchain::VulkanSwapchain(VkPhysicalDevice physicalDevice, VkDevice devic
     uint32_t graphicsFamily, uint32_t presentFamily, uint32_t width, uint32_t height,
     VkSwapchainKHR oldSwapchain)
     : device(device), surface(surface), graphicsFamily(graphicsFamily), presentFamily(presentFamily) {
-    createSwapchain(physicalDevice, width, height, oldSwapchain);
-    createImageViews();
+    try {
+        createSwapchain(physicalDevice, width, height, oldSwapchain);
+        createImageViews();
+    }
+    catch (...) {
+        destroy(); // the destructor does not run when the constructor throws
+        throw;
+    }
 }
 
 // Destructor: destroys image views and swapchain
 VulkanSwapchain::~VulkanSwapchain() {
-    for (auto view : imageViews) {
+    destroy();
+}
+
+void VulkanSwapchain::destroy() {
+    for (auto view : imageViews) { // views not yet created are VK_NULL_HANDLE, which is ignored
         vkDestroyImageView(device, view, nullptr);
     }
 

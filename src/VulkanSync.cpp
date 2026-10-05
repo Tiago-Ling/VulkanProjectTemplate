@@ -4,15 +4,28 @@
 // Constructor: create semaphores and fences
 VulkanSync::VulkanSync(VkDevice device, size_t maxFramesInFlight, size_t swapchainImageCount)
     : device(device), maxFrames(maxFramesInFlight) {
-    createSyncObjects();
-    createImageSemaphores(swapchainImageCount);
+    try {
+        createSyncObjects();
+        createImageSemaphores(swapchainImageCount);
+    }
+    catch (...) {
+        destroy(); // the destructor does not run when the constructor throws
+        throw;
+    }
 }
 
 // Destructor: cleanup sync objects
 VulkanSync::~VulkanSync() {
-    for (size_t i = 0; i < maxFrames; ++i) {
-        vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
-        vkDestroyFence(device, inFlightFences[i], nullptr);
+    destroy();
+}
+
+// Objects not yet created are VK_NULL_HANDLE, which the destroy calls ignore
+void VulkanSync::destroy() {
+    for (auto semaphore : imageAvailableSemaphores) {
+        vkDestroySemaphore(device, semaphore, nullptr);
+    }
+    for (auto fence : inFlightFences) {
+        vkDestroyFence(device, fence, nullptr);
     }
     destroyImageSemaphores();
 }

@@ -10,6 +10,10 @@ public:
     VulkanWindow(uint32_t width, uint32_t height, const std::string& title);
     ~VulkanWindow();
 
+    // Not copyable: owns the GLFW window, whose user pointer refers to this object
+    VulkanWindow(const VulkanWindow&) = delete;
+    VulkanWindow& operator=(const VulkanWindow&) = delete;
+
     // Returns raw GLFW window pointer
     GLFWwindow* getGLFWWindow() const { return window; }
 

@@ -12,13 +12,23 @@ VulkanInstance::VulkanInstance(const char* appName, bool enableValidation)
     if (validationEnabled && !checkValidationLayerSupport()) {
         throw std::runtime_error("Validation layers requested but not available!");
     }
-    createInstance(appName);
-    if (validationEnabled) {
-        setupDebugMessenger();
+    try {
+        createInstance(appName);
+        if (validationEnabled) {
+            setupDebugMessenger();
+        }
+    }
+    catch (...) {
+        destroy(); // the destructor does not run when the constructor throws
+        throw;
     }
 }
 
 VulkanInstance::~VulkanInstance() {
+    destroy();
+}
+
+void VulkanInstance::destroy() {
     if (debugMessenger != VK_NULL_HANDLE) {
         auto destroyFn = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
             vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));

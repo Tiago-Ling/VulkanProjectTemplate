@@ -8,6 +8,10 @@ public:
     VulkanSync(VkDevice device, size_t maxFramesInFlight, size_t swapchainImageCount);
     ~VulkanSync();
 
+    // Not copyable: a copy would destroy the same handles twice
+    VulkanSync(const VulkanSync&) = delete;
+    VulkanSync& operator=(const VulkanSync&) = delete;
+
     // Per-image semaphores must be recreated when the swapchain image count changes
     void recreateImageSemaphores(size_t swapchainImageCount);
 
@@ -29,4 +33,5 @@ private:
     void createSyncObjects();
     void createImageSemaphores(size_t swapchainImageCount);
     void destroyImageSemaphores();
+    void destroy();
 };

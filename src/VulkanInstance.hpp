@@ -9,9 +9,15 @@ public:
     VulkanInstance(const char* appName, bool enableValidation);
     ~VulkanInstance();
 
+    // Not copyable: a copy would destroy the same handles twice
+    VulkanInstance(const VulkanInstance&) = delete;
+    VulkanInstance& operator=(const VulkanInstance&) = delete;
+
     VkInstance getInstance() const { return instance; }
 
 private:
+    void destroy();
+
     VkInstance instance = VK_NULL_HANDLE;
     VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
     bool validationEnabled;

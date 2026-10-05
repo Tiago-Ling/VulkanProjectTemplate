@@ -15,6 +15,10 @@ public:
 
     ~VulkanImage();
 
+    // Not copyable: a copy would destroy the same image, view and memory twice
+    VulkanImage(const VulkanImage&) = delete;
+    VulkanImage& operator=(const VulkanImage&) = delete;
+
     VkImage getImage() const { return image; }
     VkDeviceMemory getMemory() const { return imageMemory; }
 
@@ -35,4 +39,5 @@ private:
         VkImageTiling tiling,
         VkImageUsageFlags usage,
         VkMemoryPropertyFlags properties);
+    void destroy();
 };

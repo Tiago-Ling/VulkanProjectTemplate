@@ -14,6 +14,10 @@ public:
     // Destructor: cleans up logical device
     ~VulkanDevice();
 
+    // Not copyable: a copy would destroy the same handles twice
+    VulkanDevice(const VulkanDevice&) = delete;
+    VulkanDevice& operator=(const VulkanDevice&) = delete;
+
     // Accessors
     VkDevice getDevice() const { return device; }
     VkPhysicalDevice getPhysicalDevice() const { return physicalDevice; }
@@ -72,5 +76,6 @@ private:
     int rateDevice(VkPhysicalDevice device);
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device); // still private
     void createLogicalDevice();
+    void destroy();
 
 };

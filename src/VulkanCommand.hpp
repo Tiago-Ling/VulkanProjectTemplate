@@ -25,6 +25,10 @@ public:
 
     ~VulkanCommand();
 
+    // Not copyable: a copy would destroy the same command pool twice
+    VulkanCommand(const VulkanCommand&) = delete;
+    VulkanCommand& operator=(const VulkanCommand&) = delete;
+
     const std::vector<VkCommandBuffer>& getCommandBuffers() const { return commandBuffers; }
     VkCommandBuffer getCommandBuffer(uint32_t index) const;
 

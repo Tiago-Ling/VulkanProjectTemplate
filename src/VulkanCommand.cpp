@@ -45,11 +45,17 @@ VulkanCommand::VulkanCommand(VkDevice device,
     pipeline(pipeline) {
 
     createCommandPool(queueFamilyIndex);
-    allocateCommandBuffers(frameCount);
+    try {
+        allocateCommandBuffers(frameCount);
+    }
+    catch (...) {
+        vkDestroyCommandPool(device, commandPool, nullptr); // the destructor does not run when the constructor throws
+        throw;
+    }
 }
 
 VulkanCommand::~VulkanCommand() {
-    vkDestroyCommandPool(device, commandPool, nullptr);
+    vkDestroyCommandPool(device, commandPool, nullptr); // also frees the command buffers
 }
 
 void VulkanCommand::createCommandPool(uint32_t queueFamilyIndex) {

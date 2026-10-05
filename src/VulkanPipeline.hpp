@@ -14,6 +14,10 @@ public:
 
     ~VulkanPipeline();
 
+    // Not copyable: a copy would destroy the same handles twice
+    VulkanPipeline(const VulkanPipeline&) = delete;
+    VulkanPipeline& operator=(const VulkanPipeline&) = delete;
+
     VkPipeline get() const { return pipeline; }
     VkPipelineLayout getLayout() const { return pipelineLayout; }
     VkDescriptorSetLayout getDescriptorSetLayout() const { return descriptorSetLayout; }
@@ -28,4 +32,5 @@ private:
         VkFormat depthFormat,
         const std::string& vertShaderPath,
         const std::string& fragShaderPath);
+    void destroy();
 };
