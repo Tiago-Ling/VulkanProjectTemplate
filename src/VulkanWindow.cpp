@@ -1,6 +1,6 @@
 #include "VulkanWindow.hpp"
+#include "Utils.hpp"
 #include <stdexcept>
-#include <iostream>
 
 // Constructor: create GLFW window and initialize members
 VulkanWindow::VulkanWindow(uint32_t width, uint32_t height, const std::string& title)
@@ -25,7 +25,7 @@ VulkanWindow::VulkanWindow(uint32_t width, uint32_t height, const std::string& t
     glfwSetWindowUserPointer(window, this);
     glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 
-    std::cout << "GLFW window created successfully.\n";
+    LOG_INFO("GLFW window created.");
 }
 
 // Destructor: clean up
@@ -42,7 +42,7 @@ VkSurfaceKHR VulkanWindow::createAndGetSurface(VkInstance instance) {
     if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create Vulkan window surface!");
     }
-	VulkanWindow::setSurface(surface);
+    VulkanWindow::setSurface(surface);
     return surface;
 }
 

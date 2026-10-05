@@ -1,4 +1,4 @@
-﻿#include "VulkanContext.hpp"
+#include "VulkanContext.hpp"
 #include "Input.hpp"
 #include "Utils.hpp"
 #include "CubeMesh.hpp"

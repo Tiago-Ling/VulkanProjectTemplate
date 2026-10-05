@@ -19,9 +19,9 @@ public:
 
     // Create a Vulkan surface from the GLFW window
     VkSurfaceKHR createAndGetSurface(VkInstance instance);
-	// get the Vulkan surface
-	VkSurfaceKHR getSurface() const { return surface; }
-	void setSurface(VkSurfaceKHR surf) { surface = surf; }
+    // get the Vulkan surface
+    VkSurfaceKHR getSurface() const { return surface; }
+    void setSurface(VkSurfaceKHR surf) { surface = surf; }
 
     // Framebuffer size in pixels (may differ from window size on HiDPI displays)
     void getFramebufferSize(uint32_t& outWidth, uint32_t& outHeight) const;
@@ -40,7 +40,7 @@ public:
 
 private:
     GLFWwindow* window = nullptr;
-	VkSurfaceKHR surface = VK_NULL_HANDLE;
+    VkSurfaceKHR surface = VK_NULL_HANDLE;
     uint32_t width;
     uint32_t height;
     std::string title;

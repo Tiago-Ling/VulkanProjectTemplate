@@ -4,8 +4,6 @@
 #include <iostream>
 #include <stdexcept>
 #include <fstream>
-#include <sstream>
-#include <cstdlib>
 #include <string>
 #include <vector>
 
@@ -25,17 +23,6 @@
     } while (0)
 
 // ===== File Reading Utility =====
-// Reads a file fully into a string
-inline std::string readTextFile(const std::string& filename) {
-    std::ifstream file(filename);
-    if (!file.is_open())
-        throw std::runtime_error("Failed to open file: " + filename);
-
-    std::stringstream buffer;
-    buffer << file.rdbuf();
-    return buffer.str();
-}
-
 // Reads binary file into vector<char> (useful for shaders)
 inline std::vector<char> readBinaryFile(const std::string& filename) {
     std::ifstream file(filename, std::ios::ate | std::ios::binary);
@@ -66,16 +53,3 @@ inline uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFil
 
     throw std::runtime_error("Failed to find suitable memory type!");
 }
-
-// ===== Debug Macro =====
-// Print current line and file
-#define DEBUG_POINT() \
-    std::cout << "[DEBUG] " << __FILE__ << ":" << __LINE__ << std::endl
-
-// ===== Safe Release =====
-// Destroys Vulkan object if it's not null
-#define SAFE_DESTROY(handle, destroyFn, device) \
-    if (handle != VK_NULL_HANDLE) { \
-        destroyFn(device, handle, nullptr); \
-        handle = VK_NULL_HANDLE; \
-    }

@@ -1,4 +1,4 @@
-﻿#include "Mesh.hpp"
+#include "Mesh.hpp"
 #include "VulkanDevice.hpp"
 #include <cstring>
 
@@ -60,9 +60,9 @@ VkVertexInputBindingDescription Vertex::getBindingDescription() {
     return binding;
 }
 
-// Describe layout of Vertex attributes (e.g., position)
+// Describe layout of Vertex attributes (position and color)
 std::vector<VkVertexInputAttributeDescription> Vertex::getAttributeDescriptions() {
-    std::vector<VkVertexInputAttributeDescription> attrs(2); // ← change to 2
+    std::vector<VkVertexInputAttributeDescription> attrs(2);
 
     attrs[0].binding = 0;
     attrs[0].location = 0;
@@ -72,7 +72,7 @@ std::vector<VkVertexInputAttributeDescription> Vertex::getAttributeDescriptions(
     attrs[1].binding = 0;
     attrs[1].location = 1;
     attrs[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attrs[1].offset = offsetof(Vertex, color); // ← make sure Vertex has `color`
+    attrs[1].offset = offsetof(Vertex, color);
 
     return attrs;
 }

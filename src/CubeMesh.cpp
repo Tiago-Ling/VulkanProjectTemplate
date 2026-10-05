@@ -1,8 +1,8 @@
-﻿#include "CubeMesh.hpp"
+#include "CubeMesh.hpp"
 
 CubeMesh::CubeMesh(const VulkanDevice& device)
     : Mesh(device,
-        // 🟦 Vertices
+        // Vertices
         {
             // Front face
             {{-0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}}, // 0
@@ -16,7 +16,7 @@ CubeMesh::CubeMesh(const VulkanDevice& device)
             {{ 0.5f,  0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}}, // 6
             {{-0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, 0.0f}}, // 7
         },
-        // 🟨 Indices
+        // Indices
         {
             // front
             0, 1, 2, 2, 3, 0,

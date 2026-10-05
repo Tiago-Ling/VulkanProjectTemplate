@@ -1,4 +1,4 @@
-﻿#include "VulkanDevice.hpp"
+#include "VulkanDevice.hpp"
 #include <stdexcept>
 #include <set>
 #include <vector>
@@ -68,9 +68,8 @@ void VulkanDevice::pickPhysicalDevice() {
 
     VkPhysicalDeviceProperties props;
     vkGetPhysicalDeviceProperties(physicalDevice, &props);
-    std::cout << "[INFO]  Using GPU: " << props.deviceName << std::endl;
+    LOG_INFO("Using GPU: " << props.deviceName);
 
-    // ✅ Fixed this line
     queueIndices = findQueueFamilies(physicalDevice);
 }
 

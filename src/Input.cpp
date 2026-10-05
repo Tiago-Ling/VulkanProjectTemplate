@@ -31,9 +31,9 @@ void Input::updateMouse() {
     lastMouseY = currentY;
 }
 
-// Query if key is currently pressed
+// Query if key is currently pressed (unknown key codes report false)
 bool Input::isKeyPressed(int key) {
-    return keyStates[key];
+    return key >= 0 && key <= GLFW_KEY_LAST && keyStates[key];
 }
 
 // Get mouse movement since last frame

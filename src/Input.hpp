@@ -1,7 +1,7 @@
 #pragma once
 
 #include <GLFW/glfw3.h>
-#include <unordered_map>
+#include <array>
 
 class Input {
 public:
@@ -15,7 +15,7 @@ public:
 
 private:
     static inline GLFWwindow* window = nullptr;
-    static inline std::unordered_map<int, bool> keyStates;
+    static inline std::array<bool, GLFW_KEY_LAST + 1> keyStates{}; // indexed by GLFW key code
 
     static inline double lastMouseX = 0.0;
     static inline double lastMouseY = 0.0;

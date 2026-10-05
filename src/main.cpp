@@ -1,4 +1,5 @@
-﻿#include "VulkanContext.hpp"
+#include "VulkanContext.hpp"
+#include <cstdlib>
 #include <iostream>
 
 int main() {

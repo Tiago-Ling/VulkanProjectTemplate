@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <vulkan/vulkan.h>
 #include <vector>
@@ -23,15 +23,12 @@ public:
     VkPhysicalDevice getPhysicalDevice() const { return physicalDevice; }
     VkQueue getGraphicsQueue() const { return graphicsQueue; }
     VkQueue getPresentQueue() const { return presentQueue; }
-	// get index of graphics queue family
     uint32_t getGraphicsQueueFamilyIndex() const {
         return queueIndices.graphicsFamily.value();
     }
     uint32_t getPresentQueueFamilyIndex() const {
         return queueIndices.presentFamily.value();
     }
-
-
 
     // Records commands into a one-off command buffer, submits it to the graphics queue and waits
     // for completion (for setup work such as buffer and image uploads, not per-frame rendering)
@@ -66,7 +63,7 @@ private:
         }
     };
 
-    QueueFamilyIndices queueIndices;  // ✅ Cached result after device selection
+    QueueFamilyIndices queueIndices; // cached for the selected physical device
 
     void pickPhysicalDevice();
     bool isDeviceSuitable(VkPhysicalDevice device);
@@ -74,7 +71,7 @@ private:
     bool checkSurfaceSupport(VkPhysicalDevice device);
     bool checkVulkan13Support(VkPhysicalDevice device);
     int rateDevice(VkPhysicalDevice device);
-    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device); // still private
+    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
     void createLogicalDevice();
     void destroy();
 
