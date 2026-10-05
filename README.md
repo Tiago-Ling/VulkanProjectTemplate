@@ -1,75 +1,96 @@
-# Vulkan Boilerplate (C++)
+# Vulkan Template (C++)
 
-🚀 A modular and scalable Vulkan boilerplate written in modern C++, designed to help you get started with graphics programming and Vulkan API projects.
+A small, modular Vulkan 1.3 starting point in modern C++, built with CMake. It opens a window and renders a spinning, vertex-colored cube with a depth buffer — everything you need before writing your own rendering code.
+Forked from the original template created by [Ragulnath M B](https://github.com/ragulnathMB/VulkanProjectTemplate).
 
-## 📸 Preview
 <p align="center">
-  <img src="preview.png" width="600" alt="Preview of Vulkan Project">
+  <img src="docs/screenshot.png" width="600" alt="Spinning colored cube rendered by the template">
 </p>
 
-## 🧩 Features
+## Features
 
-- 🧱 Modular Architecture — Clean separation of concerns
-- 🌀 VulkanContext, SwapChain, Device, RenderPass, etc.
-- 🎮 Integrated Camera & Input Systems
-- 🧮 Custom Math and Timer Utilities
-- 📦 Easy Shader Management
-- 🎥 Ready for 3D + 2D interaction (useful for simulation, silhouette carving, etc.)
+- **Vulkan 1.3**: dynamic rendering (no render pass or framebuffer objects) and synchronization2 barriers
+- **Swapchain recreation** on resize and when out of date; waits while minimized
+- **Two frames in flight** with per-frame command buffers and fences, per-image present semaphores
+- **Depth buffer** with automatic format selection
+- **GPU selection** that prefers a discrete GPU and checks swapchain, surface and Vulkan 1.3 support
+- **Validation layers** in Debug builds, with warnings and errors routed through the app's logger
+- Uniform buffer + descriptor set for model/view/projection matrices
+- Camera, input (keyboard and mouse delta), timer and math helpers
+- GLSL shaders compiled to SPIR-V by the build and loaded from beside the executable
 
-## 📁 Folder Structure
+## Requirements
 
-```
-Vulkan/
-├── Camera/
-├── Input/
-├── Math/
-├── Mesh/
-├── ShaderLoader/
-├── Timer/
-├── Utils/
-├── VulkanBuffer/
-├── VulkanCommand/
-├── VulkanContext/
-├── VulkanDevice/
-├── VulkanFrameBuffer/
-├── VulkanImage/
-├── VulkanInstance/
-├── VulkanPipeline/
-├── VulkanRenderPass/
-├── VulkanSwpChain/
-├── VulkanSync/
-├── VulkanWindow/
-main.cpp
-Shaders/
-assets/
-```
+- A C++17 compiler (GCC, Clang or MSVC)
+- CMake 3.19 or newer
+- Vulkan 1.3 capable GPU and driver
+- Vulkan headers and loader, `glslc`, and (for Debug builds) the Khronos validation layer
+- GLFW 3 and GLM
 
-## ⚙️ Build Instructions
-
-### Prerequisites
-
-- CMake ≥ 3.16
-- Vulkan SDK
-- GLFW
-- GLM
-
-### Build (Linux/Windows)
+### Arch Linux
 
 ```bash
-git clone https://github.com/ragulnathMB/VulkanProjectTemplate.git
-cd VulkanProjectTemplate
+sudo pacman -S cmake ninja vulkan-headers vulkan-icd-loader vulkan-validation-layers shaderc glfw glm
 ```
 
-## 📘 Why This Repo?
+### Ubuntu / Debian
 
-- You want to **skip the boring setup** and get to rendering.
-- You want a reusable **starting point for multiple Vulkan projects**.
-- You prefer **organized modular code** instead of a giant `main.cpp`.
+```bash
+sudo apt install cmake ninja-build libvulkan-dev vulkan-validationlayers glslc libglfw3-dev libglm-dev
+```
 
-## 🤝 Contributing
+Older releases may lack `glslc`; install the [LunarG Vulkan SDK](https://vulkan.lunarg.com/) instead.
 
-Pull requests and suggestions are welcome! If this helped you, feel free to share and ⭐ the repo.
+### Windows
 
-## 📜 License
+1. Install the [LunarG Vulkan SDK](https://vulkan.lunarg.com/) (provides headers, loader, `glslc` and validation layers).
+2. Install GLFW and GLM, for example with [vcpkg](https://vcpkg.io/): `vcpkg install glfw3 glm`.
+3. Pass the vcpkg toolchain when configuring: `-DCMAKE_TOOLCHAIN_FILE=<vcpkg-root>/scripts/buildsystems/vcpkg.cmake`.
 
-MIT License - see the [LICENSE](LICENSE) file.
+## Build and run
+
+```bash
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
+cmake --build build
+./build/VulkanTemplate
+```
+
+- **Debug** builds enable the validation layer; **Release** (`-DCMAKE_BUILD_TYPE=Release`) disables it.
+- The executable and its `shaders/` folder are placed in the build directory, so it can be launched from any working directory.
+- On Windows, `cmake -S . -B build -G "Visual Studio 17 2022"` generates a solution with `VulkanTemplate` as the startup project (or open the folder directly in Visual Studio).
+- On laptops with hybrid graphics the discrete GPU is chosen automatically; the selected GPU is printed at startup.
+
+## Project structure
+
+```
+CMakeLists.txt        Build configuration (app name, sources, shader compilation)
+shaders/              GLSL sources, compiled to SPIR-V at build time
+src/
+  main.cpp            Entry point
+  VulkanContext       Owns everything; init, frame loop, swapchain recreation, cleanup
+  VulkanWindow        GLFW window, surface, resize tracking
+  VulkanInstance      Instance, validation layers, debug messenger
+  VulkanDevice        Physical device selection, logical device, queues
+  VulkanSwapChain     Swapchain images and views
+  VulkanPipeline      Graphics pipeline and descriptor set layout
+  VulkanCommand       Command buffers and per-frame recording (barriers + dynamic rendering)
+  VulkanSync          Semaphores and fences
+  VulkanBuffer        Buffer + memory helper
+  VulkanImage         Image + memory + view helper (used for depth)
+  Mesh, CubeMesh      Vertex/index buffers and the demo cube
+  Camera, Input, Timer, Math, Utils, Paths, ShaderLoader
+```
+
+## Starting a new project
+
+1. Rename the project: change `project(VulkanTemplate)` and `APP_TITLE` at the top of `CMakeLists.txt`.
+2. Replace `CubeMesh` with your own geometry and edit the shaders in `shaders/` (add new ones to the `SHADERS` list in `CMakeLists.txt`).
+3. Per-frame logic lives in `VulkanContext::drawFrame()`; draw commands are recorded in `VulkanCommand::recordCommandBuffer()`.
+
+## Credits
+
+Forked from [ragulnathMB/VulkanProjectTemplate](https://github.com/ragulnathMB/VulkanProjectTemplate).
+
+## License
+
+MIT License — see the [LICENSE](LICENSE) file.
