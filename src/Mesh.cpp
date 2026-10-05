@@ -81,7 +81,8 @@ std::vector<VkVertexInputAttributeDescription> Vertex::getAttributeDescriptions(
 // Constructor: Upload vertex and index data to GPU buffers
 Mesh::Mesh(const VulkanDevice& device,
     const std::vector<Vertex>& vertices,
-    const std::vector<uint32_t>& indices)
+    const std::vector<uint32_t>& indices,
+    const std::string& debugName)
     : indexCount(static_cast<uint32_t>(indices.size())) {
 
     vertexBuffer = createDeviceLocalBuffer(device,
@@ -93,6 +94,9 @@ Mesh::Mesh(const VulkanDevice& device,
         indices.data(), sizeof(indices[0]) * indices.size(),
         VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
         VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT, VK_ACCESS_2_INDEX_READ_BIT);
+
+    device.setDebugName(vertexBuffer->getBuffer(), VK_OBJECT_TYPE_BUFFER, debugName + " vertices");
+    device.setDebugName(indexBuffer->getBuffer(), VK_OBJECT_TYPE_BUFFER, debugName + " indices");
 }
 
 // Bind vertex and index buffers for drawing

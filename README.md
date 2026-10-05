@@ -1,7 +1,6 @@
 # Vulkan Template (C++)
 
 A small, modular Vulkan 1.3 starting point in modern C++, built with CMake. It opens a window and renders a spinning, vertex-colored cube with a depth buffer — everything you need before writing your own rendering code.
-Forked from the original template created by [Ragulnath M B](https://github.com/ragulnathMB/VulkanProjectTemplate).
 
 <p align="center">
   <img src="docs/screenshot.png" width="600" alt="Spinning colored cube rendered by the template">
@@ -14,16 +13,16 @@ Forked from the original template created by [Ragulnath M B](https://github.com/
 - **Two frames in flight** with per-frame command buffers and fences, per-image present semaphores
 - **Depth buffer** with automatic format selection
 - **GPU selection** that prefers a discrete GPU and checks swapchain, surface and Vulkan 1.3 support
-- **Validation layers** in Debug builds, with warnings and errors routed through the app's logger
+- **Validation layers** in Debug builds, including synchronization validation, with warnings and errors routed through the app's logger and Vulkan objects labeled with debug names
 - Mesh data uploaded through a staging buffer into GPU-only memory; per-frame uniform buffers stay persistently mapped
 - Uniform buffer + descriptor set for model/view/projection matrices
 - Camera, input (keyboard and mouse delta), timer and math helpers
-- GLSL shaders compiled to SPIR-V by the build and loaded from beside the executable
+- GLSL shaders compiled to SPIR-V for Vulkan 1.3 by the build, rebuilt when included files change, and loaded from beside the executable
 
 ## Requirements
 
 - A C++17 compiler (GCC, Clang or MSVC)
-- CMake 3.19 or newer
+- CMake 3.21 or newer
 - Vulkan 1.3 capable GPU and driver
 - Vulkan headers and loader, `glslc`, and (for Debug builds) the Khronos validation layer
 - GLFW 3 and GLM
@@ -55,7 +54,7 @@ cmake --build build
 ./build/VulkanTemplate
 ```
 
-- **Debug** builds enable the validation layer; **Release** (`-DCMAKE_BUILD_TYPE=Release`) disables it.
+- **Debug** builds enable the validation layer (with synchronization validation) and debug names for Vulkan objects; **Release** (`-DCMAKE_BUILD_TYPE=Release`) disables both.
 - The executable and its `shaders/` folder are placed in the build directory, so it can be launched from any working directory.
 - On Windows, `cmake -S . -B build -G "Visual Studio 17 2022"` generates a solution with `VulkanTemplate` as the startup project (or open the folder directly in Visual Studio).
 - On laptops with hybrid graphics the discrete GPU is chosen automatically; the selected GPU is printed at startup.
@@ -70,7 +69,7 @@ src/
   VulkanContext       Owns everything; init, frame loop, swapchain recreation, cleanup
   VulkanWindow        GLFW window, surface, resize tracking
   VulkanInstance      Instance, validation layers, debug messenger
-  VulkanDevice        Physical device selection, logical device, queues
+  VulkanDevice        Physical device selection, logical device, queues, debug names
   VulkanSwapChain     Swapchain images and views
   VulkanPipeline      Graphics pipeline and descriptor set layout
   VulkanCommand       Command buffers and per-frame recording (barriers + dynamic rendering)

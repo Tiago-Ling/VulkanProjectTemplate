@@ -3,6 +3,7 @@
 #include <vulkan/vulkan.h>
 #include <glm/glm.hpp>
 #include <memory>
+#include <string>
 #include <vector>
 #include "VulkanBuffer.hpp"
 
@@ -17,10 +18,12 @@ struct Vertex {
 
 class Mesh {
 public:
-    // Uploads the data into device-local vertex/index buffers through a staging buffer
+    // Uploads the data into device-local vertex/index buffers through a staging buffer;
+    // debugName labels the buffers in validation messages and debuggers
     Mesh(const VulkanDevice& device,
         const std::vector<Vertex>& vertices,
-        const std::vector<uint32_t>& indices);
+        const std::vector<uint32_t>& indices,
+        const std::string& debugName = "mesh");
 
     virtual ~Mesh() = default; // deleted through Mesh* (e.g. CubeMesh)
 

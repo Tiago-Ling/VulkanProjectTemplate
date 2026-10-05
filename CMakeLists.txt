@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.19)
+cmake_minimum_required(VERSION 3.21) # DEPFILE on custom commands for every generator
 project(VulkanTemplate)
 
 # Display name used for the window title and VkApplicationInfo
@@ -61,8 +61,10 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 )
 
 if(MSVC)
-    target_compile_options(${PROJECT_NAME} PRIVATE /utf-8)
+    target_compile_options(${PROJECT_NAME} PRIVATE /utf-8 /W4)
     set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
+else()
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra)
 endif()
 
 # Keep the executable directly in the build directory for every generator
@@ -92,11 +94,14 @@ foreach(SHADER ${SHADERS})
     list(GET SHADER_PAIR 0 SHADER_SRC)
     list(GET SHADER_PAIR 1 SHADER_SPV)
     set(SHADER_OUT ${CMAKE_BINARY_DIR}/shaders/${SHADER_SPV})
+    # The depfile lists #include'd files, so editing one rebuilds every shader that uses it
     add_custom_command(
         OUTPUT ${SHADER_OUT}
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/shaders
-        COMMAND Vulkan::glslc ${CMAKE_CURRENT_SOURCE_DIR}/${SHADER_SRC} -o ${SHADER_OUT}
+        COMMAND Vulkan::glslc --target-env=vulkan1.3 -MD -MF ${SHADER_OUT}.d
+            ${CMAKE_CURRENT_SOURCE_DIR}/${SHADER_SRC} -o ${SHADER_OUT}
         DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${SHADER_SRC}
+        DEPFILE ${SHADER_OUT}.d
         COMMENT "Compiling ${SHADER_SRC} -> shaders/${SHADER_SPV}"
     )
     list(APPEND SPV_FILES ${SHADER_OUT})

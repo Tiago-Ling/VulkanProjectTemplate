@@ -37,6 +37,8 @@ private:
     void cleanup();
     void createDepthResources();
     void recreateSwapchain();
+    void setDebugNames();          // objects created once in init()
+    void setSwapchainDebugNames(); // objects rebuilt with the swapchain
 
     uint32_t width, height;
     const char* title;

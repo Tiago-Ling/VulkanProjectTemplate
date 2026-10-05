@@ -4,12 +4,13 @@
 #include <vector>
 #include <optional>
 #include <functional>
+#include <string>
 #include "Utils.hpp"
 
 class VulkanDevice {
 public:
-    // Constructor: initializes device and queues
-    VulkanDevice(VkInstance instance, VkSurfaceKHR surface);
+    // Constructor: initializes device and queues; debug names need VK_EXT_debug_utils on the instance
+    VulkanDevice(VkInstance instance, VkSurfaceKHR surface, bool enableDebugNames);
 
     // Destructor: cleans up logical device
     ~VulkanDevice();
@@ -42,6 +43,21 @@ public:
         return ::findMemoryType(physicalDevice, typeFilter, properties);
     }
 
+    // Labels a Vulkan object in validation messages and debuggers such as RenderDoc
+    // (does nothing when debug names are disabled, i.e. in Release builds)
+    template <typename Handle>
+    void setDebugName(Handle handle, VkObjectType type, const std::string& name) const {
+        if (!setObjectName) {
+            return;
+        }
+        VkDebugUtilsObjectNameInfoEXT nameInfo{};
+        nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+        nameInfo.objectType = type;
+        nameInfo.objectHandle = reinterpret_cast<uint64_t>(handle);
+        nameInfo.pObjectName = name.c_str();
+        setObjectName(device, &nameInfo);
+    }
+
 private:
     // Vulkan handles
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
@@ -50,6 +66,7 @@ private:
     VkQueue graphicsQueue = VK_NULL_HANDLE;
     VkQueue presentQueue = VK_NULL_HANDLE;
     VkCommandPool uploadCommandPool = VK_NULL_HANDLE; // for immediateSubmit
+    PFN_vkSetDebugUtilsObjectNameEXT setObjectName = nullptr; // null when debug names are disabled
 
     VkSurfaceKHR surface;
     VkInstance instance;

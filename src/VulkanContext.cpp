@@ -42,7 +42,8 @@ void VulkanContext::init() {
 #endif
     vulkanWindow->createAndGetSurface(instance->getInstance());
 
-    device = std::make_unique<VulkanDevice>(instance->getInstance(), vulkanWindow->getSurface());
+    device = std::make_unique<VulkanDevice>(instance->getInstance(), vulkanWindow->getSurface(),
+        instance->isValidationEnabled());
 
     uint32_t fbWidth, fbHeight;
     vulkanWindow->getFramebufferSize(fbWidth, fbHeight);
@@ -129,7 +130,45 @@ void VulkanContext::init() {
     timer = std::make_unique<Timer>();
     mesh = std::make_unique<CubeMesh>(*device);
 
+    setDebugNames();
+    setSwapchainDebugNames();
+
     LOG_INFO("Vulkan Context Initialized.");
+}
+
+// Names show up in validation messages and debuggers such as RenderDoc (Debug builds only)
+void VulkanContext::setDebugNames() {
+    device->setDebugName(device->getGraphicsQueue(), VK_OBJECT_TYPE_QUEUE, "graphics queue");
+    if (device->getPresentQueue() != device->getGraphicsQueue()) {
+        device->setDebugName(device->getPresentQueue(), VK_OBJECT_TYPE_QUEUE, "present queue");
+    }
+
+    device->setDebugName(pipeline->get(), VK_OBJECT_TYPE_PIPELINE, "main pipeline");
+    device->setDebugName(pipeline->getLayout(), VK_OBJECT_TYPE_PIPELINE_LAYOUT, "main pipeline layout");
+    device->setDebugName(pipeline->getDescriptorSetLayout(), VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, "MVP set layout");
+    device->setDebugName(descriptorPool, VK_OBJECT_TYPE_DESCRIPTOR_POOL, "descriptor pool");
+
+    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+        const std::string frame = " [frame " + std::to_string(i) + "]";
+        device->setDebugName(uniformBuffers[i]->getBuffer(), VK_OBJECT_TYPE_BUFFER, "MVP uniform buffer" + frame);
+        device->setDebugName(descriptorSets[i], VK_OBJECT_TYPE_DESCRIPTOR_SET, "MVP descriptor set" + frame);
+        device->setDebugName(command->getCommandBuffer(i), VK_OBJECT_TYPE_COMMAND_BUFFER, "frame commands" + frame);
+        device->setDebugName(sync->getInFlightFence(i), VK_OBJECT_TYPE_FENCE, "in-flight fence" + frame);
+        device->setDebugName(sync->getImageAvailableSemaphore(i), VK_OBJECT_TYPE_SEMAPHORE, "image available" + frame);
+    }
+}
+
+void VulkanContext::setSwapchainDebugNames() {
+    device->setDebugName(swapchain->getSwapchain(), VK_OBJECT_TYPE_SWAPCHAIN_KHR, "swapchain");
+    device->setDebugName(depthImage->getImage(), VK_OBJECT_TYPE_IMAGE, "depth image");
+    device->setDebugName(depthImage->getImageView(), VK_OBJECT_TYPE_IMAGE_VIEW, "depth view");
+
+    for (size_t i = 0; i < swapchain->getImages().size(); ++i) {
+        const std::string image = " [image " + std::to_string(i) + "]";
+        device->setDebugName(swapchain->getImages()[i], VK_OBJECT_TYPE_IMAGE, "swapchain image" + image);
+        device->setDebugName(swapchain->getImageViews()[i], VK_OBJECT_TYPE_IMAGE_VIEW, "swapchain view" + image);
+        device->setDebugName(sync->getRenderFinishedSemaphore(i), VK_OBJECT_TYPE_SEMAPHORE, "render finished" + image);
+    }
 }
 
 // Depth buffer matching the current swapchain extent (one is enough: frames render sequentially on one queue)
@@ -177,6 +216,8 @@ void VulkanContext::recreateSwapchain() {
 
     VkExtent2D extent = swapchain->getExtent();
     camera->setAspectRatio(extent.width / (float)extent.height);
+
+    setSwapchainDebugNames();
 }
 
 void VulkanContext::run() {

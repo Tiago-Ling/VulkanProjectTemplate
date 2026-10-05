@@ -7,6 +7,23 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+namespace {
+    // True if the given layer provides the given instance extension
+    bool layerHasExtension(const char* layerName, const char* extensionName) {
+        uint32_t count = 0;
+        vkEnumerateInstanceExtensionProperties(layerName, &count, nullptr);
+        std::vector<VkExtensionProperties> available(count);
+        vkEnumerateInstanceExtensionProperties(layerName, &count, available.data());
+
+        for (const auto& ext : available) {
+            if (strcmp(extensionName, ext.extensionName) == 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
 VulkanInstance::VulkanInstance(const char* appName, bool enableValidation)
     : validationEnabled(enableValidation) {
     if (validationEnabled && !checkValidationLayerSupport()) {
@@ -88,8 +105,20 @@ void VulkanInstance::createInstance(const char* appName) {
     VkInstanceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
-    createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
-    createInfo.ppEnabledExtensionNames = extensions.data();
+
+    // Synchronization validation reports missing or incorrect barriers and semaphores
+    const VkBool32 enableSyncValidation = VK_TRUE;
+    VkLayerSettingEXT syncSetting{};
+    syncSetting.pLayerName = validationLayers[0];
+    syncSetting.pSettingName = "validate_sync";
+    syncSetting.type = VK_LAYER_SETTING_TYPE_BOOL32_EXT;
+    syncSetting.valueCount = 1;
+    syncSetting.pValues = &enableSyncValidation;
+
+    VkLayerSettingsCreateInfoEXT layerSettingsInfo{};
+    layerSettingsInfo.sType = VK_STRUCTURE_TYPE_LAYER_SETTINGS_CREATE_INFO_EXT;
+    layerSettingsInfo.settingCount = 1;
+    layerSettingsInfo.pSettings = &syncSetting;
 
     // Chained messenger covers messages from vkCreateInstance/vkDestroyInstance themselves
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
@@ -98,10 +127,22 @@ void VulkanInstance::createInstance(const char* appName) {
         createInfo.ppEnabledLayerNames = validationLayers.data();
         populateDebugMessengerCreateInfo(debugCreateInfo);
         createInfo.pNext = &debugCreateInfo;
+
+        if (layerHasExtension(validationLayers[0], VK_EXT_LAYER_SETTINGS_EXTENSION_NAME)) {
+            extensions.push_back(VK_EXT_LAYER_SETTINGS_EXTENSION_NAME);
+            debugCreateInfo.pNext = &layerSettingsInfo;
+        }
+        else {
+            LOG_WARN("Validation layer lacks " << VK_EXT_LAYER_SETTINGS_EXTENSION_NAME
+                << "; synchronization validation is off");
+        }
     }
     else {
         createInfo.enabledLayerCount = 0;
     }
+
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+    createInfo.ppEnabledExtensionNames = extensions.data();
 
     if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create Vulkan instance.");
@@ -133,9 +174,9 @@ void VulkanInstance::setupDebugMessenger() {
 
 VKAPI_ATTR VkBool32 VKAPI_CALL VulkanInstance::debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT severity,
-    VkDebugUtilsMessageTypeFlagsEXT type,
+    VkDebugUtilsMessageTypeFlagsEXT /*type*/,
     const VkDebugUtilsMessengerCallbackDataEXT* callbackData,
-    void* userData) {
+    void* /*userData*/) {
     if (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
         LOG_ERROR("[Vulkan] " << callbackData->pMessage);
     }

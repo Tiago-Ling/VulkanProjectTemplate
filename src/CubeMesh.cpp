@@ -30,5 +30,6 @@ CubeMesh::CubeMesh(const VulkanDevice& device)
             4, 5, 1, 1, 0, 4,
             // top
             3, 2, 6, 6, 7, 3
-        }
+        },
+        "cube"
     ) {}

@@ -12,8 +12,8 @@ namespace {
 }
 
 // Constructor: Pick physical device and create logical device
-VulkanDevice::VulkanDevice(VkInstance instance, VkSurfaceKHR surface)
-    : instance(instance), surface(surface) {
+VulkanDevice::VulkanDevice(VkInstance instance, VkSurfaceKHR surface, bool enableDebugNames)
+    : surface(surface), instance(instance) {
     pickPhysicalDevice();
     try {
         createLogicalDevice();
@@ -21,6 +21,11 @@ VulkanDevice::VulkanDevice(VkInstance instance, VkSurfaceKHR surface)
     catch (...) {
         destroy(); // the destructor does not run when the constructor throws
         throw;
+    }
+
+    if (enableDebugNames) {
+        setObjectName = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(
+            vkGetInstanceProcAddr(instance, "vkSetDebugUtilsObjectNameEXT"));
     }
 }
 

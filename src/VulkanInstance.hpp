@@ -15,6 +15,9 @@ public:
 
     VkInstance getInstance() const { return instance; }
 
+    // Validation also enables VK_EXT_debug_utils (debug messenger and object names)
+    bool isValidationEnabled() const { return validationEnabled; }
+
 private:
     void destroy();
 

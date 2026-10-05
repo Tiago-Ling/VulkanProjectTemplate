@@ -48,7 +48,7 @@ VkSurfaceKHR VulkanWindow::createAndGetSurface(VkInstance instance) {
 
 
 // Flag resizes so the swapchain gets recreated on the next frame
-void VulkanWindow::framebufferResizeCallback(GLFWwindow* window, int width, int height) {
+void VulkanWindow::framebufferResizeCallback(GLFWwindow* window, int /*width*/, int /*height*/) {
     auto* self = static_cast<VulkanWindow*>(glfwGetWindowUserPointer(window));
     self->framebufferResized = true;
 }
