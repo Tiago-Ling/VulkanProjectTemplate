@@ -62,6 +62,7 @@ private:
     bool isDeviceSuitable(VkPhysicalDevice device);
     bool checkDeviceExtensionSupport(VkPhysicalDevice device);
     bool checkSurfaceSupport(VkPhysicalDevice device);
+    bool checkVulkan13Support(VkPhysicalDevice device);
     int rateDevice(VkPhysicalDevice device);
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device); // still private
     void createLogicalDevice();

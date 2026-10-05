@@ -30,11 +30,9 @@ set(SRC_FILES
     src/VulkanCommand.cpp
     src/VulkanContext.cpp
     src/VulkanDevice.cpp
-    src/VulkanFrameBuffer.cpp
     src/VulkanImage.cpp
     src/VulkanInstance.cpp
     src/VulkanPipeline.cpp
-    src/VulkanRenderPass.cpp
     src/VulkanSwapChain.cpp
     src/VulkanSync.cpp
     src/VulkanWindow.cpp

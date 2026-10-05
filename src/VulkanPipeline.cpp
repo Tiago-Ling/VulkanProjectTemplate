@@ -9,11 +9,12 @@
 
 // Constructor
 VulkanPipeline::VulkanPipeline(VkDevice device,
-    VkRenderPass renderPass,
+    VkFormat colorFormat,
+    VkFormat depthFormat,
     const std::string& vertShaderPath,
     const std::string& fragShaderPath)
     : device(device) {
-    createGraphicsPipeline(renderPass, vertShaderPath, fragShaderPath);
+    createGraphicsPipeline(colorFormat, depthFormat, vertShaderPath, fragShaderPath);
 }
 
 // Destructor
@@ -30,7 +31,8 @@ VulkanPipeline::~VulkanPipeline() {
 }
 
 // Create the full graphics pipeline
-void VulkanPipeline::createGraphicsPipeline(VkRenderPass renderPass,
+void VulkanPipeline::createGraphicsPipeline(VkFormat colorFormat,
+    VkFormat depthFormat,
     const std::string& vertShaderPath,
     const std::string& fragShaderPath) {
     auto vertShaderCode = ShaderLoader::readSPIRV(vertShaderPath);
@@ -148,9 +150,17 @@ void VulkanPipeline::createGraphicsPipeline(VkRenderPass renderPass,
         throw std::runtime_error("Failed to create pipeline layout!");
     }
 
+    // === Attachment formats (dynamic rendering: no render pass object) ===
+    VkPipelineRenderingCreateInfo renderingInfo{};
+    renderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+    renderingInfo.colorAttachmentCount = 1;
+    renderingInfo.pColorAttachmentFormats = &colorFormat;
+    renderingInfo.depthAttachmentFormat = depthFormat;
+
     // === Final Pipeline Creation ===
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipelineInfo.pNext = &renderingInfo;
     pipelineInfo.stageCount = 2;
     pipelineInfo.pStages = shaderStages;
     pipelineInfo.pVertexInputState = &vertexInputInfo;
@@ -162,8 +172,7 @@ void VulkanPipeline::createGraphicsPipeline(VkRenderPass renderPass,
     pipelineInfo.pDynamicState = &dynamicState;
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.layout = pipelineLayout;
-    pipelineInfo.renderPass = renderPass;
-    pipelineInfo.subpass = 0;
+    pipelineInfo.renderPass = VK_NULL_HANDLE;
 
     if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create graphics pipeline!");

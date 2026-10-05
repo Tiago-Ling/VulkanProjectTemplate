@@ -66,6 +66,7 @@ void VulkanDevice::pickPhysicalDevice() {
 bool VulkanDevice::isDeviceSuitable(VkPhysicalDevice device) {
     QueueFamilyIndices indices = findQueueFamilies(device);
     return indices.isComplete()
+        && checkVulkan13Support(device)
         && checkDeviceExtensionSupport(device)
         && checkSurfaceSupport(device); // queried only once the swapchain extension is confirmed
 }
@@ -87,6 +88,24 @@ bool VulkanDevice::checkDeviceExtensionSupport(VkPhysicalDevice device) {
         if (!found) return false;
     }
     return true;
+}
+
+// Vulkan 1.3 with dynamic rendering and synchronization2 (both mandatory in 1.3, checked for safety)
+bool VulkanDevice::checkVulkan13Support(VkPhysicalDevice device) {
+    VkPhysicalDeviceProperties props;
+    vkGetPhysicalDeviceProperties(device, &props);
+    if (props.apiVersion < VK_API_VERSION_1_3) {
+        return false;
+    }
+
+    VkPhysicalDeviceVulkan13Features features13{};
+    features13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+    VkPhysicalDeviceFeatures2 features2{};
+    features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    features2.pNext = &features13;
+    vkGetPhysicalDeviceFeatures2(device, &features2);
+
+    return features13.dynamicRendering && features13.synchronization2;
 }
 
 // The surface must offer at least one format and one present mode
@@ -171,17 +190,24 @@ void VulkanDevice::createLogicalDevice() {
         queueCreateInfos.push_back(queueCreateInfo);
     }
 
-    VkPhysicalDeviceFeatures deviceFeatures{}; // Enable needed features (e.g. samplerAnisotropy)
+    // Vulkan 1.3 features used by the renderer
+    VkPhysicalDeviceVulkan13Features features13{};
+    features13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+    features13.dynamicRendering = VK_TRUE;
+    features13.synchronization2 = VK_TRUE;
+
+    // Core features go in features2.features (e.g. samplerAnisotropy)
+    VkPhysicalDeviceFeatures2 features2{};
+    features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    features2.pNext = &features13;
 
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    createInfo.pNext = &features2; // replaces pEnabledFeatures
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
     createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
-    createInfo.pEnabledFeatures = &deviceFeatures;
     createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
     createInfo.ppEnabledExtensionNames = deviceExtensions.data();
-
-  
 
     if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create logical device!");

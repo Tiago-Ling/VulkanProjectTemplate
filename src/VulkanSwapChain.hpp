@@ -12,6 +12,7 @@ public:
     ~VulkanSwapchain();
 
     VkSwapchainKHR getSwapchain() const { return swapchain; }
+    const std::vector<VkImage>& getImages() const { return images; }
     const std::vector<VkImageView>& getImageViews() const { return imageViews; }
     VkFormat getImageFormat() const { return imageFormat; }
     VkExtent2D getExtent() const { return extent; }

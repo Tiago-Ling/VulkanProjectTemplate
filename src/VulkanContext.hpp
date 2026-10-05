@@ -11,8 +11,6 @@
 #include "VulkanInstance.hpp"
 #include "VulkanDevice.hpp"
 #include "VulkanSwapChain.hpp"
-#include "VulkanRenderPass.hpp"
-#include "VulkanFrameBuffer.hpp"
 #include "VulkanPipeline.hpp"
 #include "VulkanCommand.hpp"
 #include "VulkanSync.hpp"
@@ -51,8 +49,6 @@ private:
     std::unique_ptr<VulkanSwapchain> swapchain;
     std::unique_ptr<VulkanImage> depthImage;
     VkFormat depthFormat = VK_FORMAT_UNDEFINED;
-    std::unique_ptr<VulkanRenderPass> renderPass;
-    std::unique_ptr<VulkanFramebuffer> framebuffer;
     std::unique_ptr<VulkanPipeline> pipeline;
 
     // Uniform buffers and descriptor sets (one per frame in flight)

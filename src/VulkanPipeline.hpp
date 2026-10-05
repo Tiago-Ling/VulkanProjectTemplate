@@ -7,7 +7,8 @@
 class VulkanPipeline {
 public:
     VulkanPipeline(VkDevice device,
-        VkRenderPass renderPass,
+        VkFormat colorFormat,
+        VkFormat depthFormat,
         const std::string& vertShaderPath,
         const std::string& fragShaderPath);
 
@@ -23,7 +24,8 @@ private:
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
     VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
 
-    void createGraphicsPipeline(VkRenderPass renderPass,
+    void createGraphicsPipeline(VkFormat colorFormat,
+        VkFormat depthFormat,
         const std::string& vertShaderPath,
         const std::string& fragShaderPath);
 };

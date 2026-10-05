@@ -51,13 +51,10 @@ void VulkanContext::init() {
     depthFormat = device->findDepthFormat();
     createDepthResources();
 
-    renderPass = std::make_unique<VulkanRenderPass>(device->getDevice(), swapchain->getImageFormat(), depthFormat);
-    framebuffer = std::make_unique<VulkanFramebuffer>(device->getDevice(), renderPass->get(), swapchain->getImageViews(),
-        depthImage->getImageView(), swapchain->getExtent());
-
     pipeline = std::make_unique<VulkanPipeline>(
         device->getDevice(),
-        renderPass->get(),
+        swapchain->getImageFormat(),
+        depthFormat,
         "vert.spv",
         "frag.spv"
     );
@@ -121,7 +118,6 @@ void VulkanContext::init() {
     command = std::make_unique<VulkanCommand>(
         device->getDevice(),
         device->getGraphicsQueueFamilyIndex(),
-        renderPass->get(),
         pipeline->get(),
         MAX_FRAMES_IN_FLIGHT
     );
@@ -164,7 +160,6 @@ void VulkanContext::recreateSwapchain() {
     uint32_t fbWidth, fbHeight;
     vulkanWindow->getFramebufferSize(fbWidth, fbHeight);
 
-    framebuffer.reset();
     depthImage.reset();
 
     // Create the new swapchain while the old one is still alive, then retire the old one
@@ -174,10 +169,8 @@ void VulkanContext::recreateSwapchain() {
         fbWidth, fbHeight, oldSwapchain->getSwapchain());
     oldSwapchain.reset();
 
-    // The render pass and pipeline are kept: the surface format does not change and viewport/scissor are dynamic
+    // The pipeline is kept: the surface format does not change and viewport/scissor are dynamic
     createDepthResources();
-    framebuffer = std::make_unique<VulkanFramebuffer>(device->getDevice(), renderPass->get(), swapchain->getImageViews(),
-        depthImage->getImageView(), swapchain->getExtent());
 
     sync->recreateImageSemaphores(swapchain->getImageViews().size());
 
@@ -230,33 +223,48 @@ void VulkanContext::drawFrame() {
 
     uniformBuffers[frameIndex]->copyData(&mvp, sizeof(MVP));
 
+    RenderTarget target{};
+    target.colorImage = swapchain->getImages()[imageIndex];
+    target.colorView = swapchain->getImageViews()[imageIndex];
+    target.depthImage = depthImage->getImage();
+    target.depthView = depthImage->getImageView();
+    target.depthFormat = depthFormat;
+    target.extent = swapchain->getExtent();
+
     command->recordCommandBuffer(
         static_cast<uint32_t>(frameIndex),
-        framebuffer->getFramebuffers()[imageIndex],
-        swapchain->getExtent(),
+        target,
         mesh.get(),
         pipeline->getLayout(),
         descriptorSets[frameIndex]
     );
 
-    VkSubmitInfo submitInfo{};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-    VkSemaphore waitSemaphores[] = { sync->getImageAvailableSemaphore(frameIndex) };
-    VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-    submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = waitSemaphores;
-    submitInfo.pWaitDstStageMask = waitStages;
-
-    VkCommandBuffer cmd = command->getCommandBuffer(static_cast<uint32_t>(frameIndex));
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &cmd;
+    // Wait for the acquired image before writing color; signal when all rendering is done
+    VkSemaphoreSubmitInfo waitInfo{};
+    waitInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+    waitInfo.semaphore = sync->getImageAvailableSemaphore(frameIndex);
+    waitInfo.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
 
     VkSemaphore signalSemaphores[] = { sync->getRenderFinishedSemaphore(imageIndex) };
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = signalSemaphores;
+    VkSemaphoreSubmitInfo signalInfo{};
+    signalInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+    signalInfo.semaphore = signalSemaphores[0];
+    signalInfo.stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
 
-    VK_CHECK(vkQueueSubmit(device->getGraphicsQueue(), 1, &submitInfo, sync->getInFlightFence(frameIndex)));
+    VkCommandBufferSubmitInfo cmdInfo{};
+    cmdInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
+    cmdInfo.commandBuffer = command->getCommandBuffer(static_cast<uint32_t>(frameIndex));
+
+    VkSubmitInfo2 submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
+    submitInfo.waitSemaphoreInfoCount = 1;
+    submitInfo.pWaitSemaphoreInfos = &waitInfo;
+    submitInfo.commandBufferInfoCount = 1;
+    submitInfo.pCommandBufferInfos = &cmdInfo;
+    submitInfo.signalSemaphoreInfoCount = 1;
+    submitInfo.pSignalSemaphoreInfos = &signalInfo;
+
+    VK_CHECK(vkQueueSubmit2(device->getGraphicsQueue(), 1, &submitInfo, sync->getInFlightFence(frameIndex)));
 
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -299,9 +307,7 @@ void VulkanContext::cleanup() {
     sync.reset();
     command.reset();
     pipeline.reset();
-    framebuffer.reset();
     depthImage.reset();
-    renderPass.reset();
     swapchain.reset();
     device.reset();
 
