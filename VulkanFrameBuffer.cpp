@@ -1,4 +1,4 @@
-#include "VulkanFramebuffer.hpp"
+#include "VulkanFrameBuffer.hpp"
 #include <stdexcept>
 
 // Constructor: create framebuffers for each swapchain image view

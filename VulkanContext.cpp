@@ -28,7 +28,11 @@ void VulkanContext::init() {
     window = vulkanWindow->getGLFWWindow();
     Input::init(window);
 
-    instance = new VulkanInstance(true);
+#ifdef NDEBUG
+    instance = new VulkanInstance(false);
+#else
+    instance = new VulkanInstance(true); // requires VK_LAYER_KHRONOS_validation
+#endif
     vulkanWindow->createAndGetSurface(instance->getInstance());
 
     device = new VulkanDevice(instance->getInstance(), vulkanWindow->getSurface());

@@ -3,10 +3,8 @@
 #include <stdexcept>
 #include <cstring>
 
-#ifdef _WIN32
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-#endif
 
 VulkanInstance::VulkanInstance(bool enableValidation)
     : validationEnabled(enableValidation) {

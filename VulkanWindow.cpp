@@ -40,6 +40,7 @@ VkSurfaceKHR VulkanWindow::createAndGetSurface(VkInstance instance) {
         throw std::runtime_error("Failed to create Vulkan window surface!");
     }
 	VulkanWindow::setSurface(surface);
+    return surface;
 }
 
 

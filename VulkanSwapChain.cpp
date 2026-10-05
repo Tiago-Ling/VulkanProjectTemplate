@@ -1,4 +1,4 @@
-#include "VulkanSwapchain.hpp"
+#include "VulkanSwapChain.hpp"
 #include <stdexcept>
 #include <algorithm>
 #include <iostream>
