@@ -6,7 +6,7 @@
 
 class VulkanInstance {
 public:
-    VulkanInstance(bool enableValidation);
+    VulkanInstance(const char* appName, bool enableValidation);
     ~VulkanInstance();
 
     VkInstance getInstance() const { return instance; }
@@ -18,7 +18,7 @@ private:
 
     std::vector<const char*> getRequiredExtensions();
     bool checkValidationLayerSupport();
-    void createInstance();
+    void createInstance(const char* appName);
     void setupDebugMessenger();
     static void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 

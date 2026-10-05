@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <vulkan/vulkan.h>
+#include <memory>
 #include <vector>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -41,25 +42,27 @@ private:
     const char* title;
     uint32_t currentFrame = 0;
 
-    GLFWwindow* window;
+    GLFWwindow* window = nullptr; // owned by vulkanWindow
 
-    VulkanWindow* vulkanWindow;
-    VulkanInstance* instance;
-    VulkanDevice* device;
-    VulkanSwapchain* swapchain;
-    VulkanRenderPass* renderPass;
-    VulkanFramebuffer* framebuffer;
-    VulkanImage* depthImage;
-    VkFormat depthFormat;
-    VulkanPipeline* pipeline;
-    VulkanCommand* command;
-    VulkanSync* sync;
-    Camera* camera;
-    Timer* timer;
-    Mesh* mesh;
+    // Declared in creation order; cleanup() releases them in reverse
+    std::unique_ptr<VulkanWindow> vulkanWindow;
+    std::unique_ptr<VulkanInstance> instance;
+    std::unique_ptr<VulkanDevice> device;
+    std::unique_ptr<VulkanSwapchain> swapchain;
+    std::unique_ptr<VulkanImage> depthImage;
+    VkFormat depthFormat = VK_FORMAT_UNDEFINED;
+    std::unique_ptr<VulkanRenderPass> renderPass;
+    std::unique_ptr<VulkanFramebuffer> framebuffer;
+    std::unique_ptr<VulkanPipeline> pipeline;
 
-    // 🔥 Added for Uniform Buffers and Descriptor Sets
-    std::vector<VulkanBuffer*> uniformBuffers;
-    VkDescriptorPool descriptorPool;
+    // Uniform buffers and descriptor sets (one per frame in flight)
+    std::vector<std::unique_ptr<VulkanBuffer>> uniformBuffers;
+    VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
     std::vector<VkDescriptorSet> descriptorSets;
+
+    std::unique_ptr<VulkanCommand> command;
+    std::unique_ptr<VulkanSync> sync;
+    std::unique_ptr<Camera> camera;
+    std::unique_ptr<Timer> timer;
+    std::unique_ptr<Mesh> mesh;
 };

@@ -3,7 +3,7 @@
 
 int main() {
     try {
-        VulkanContext app(800, 600, "Silhouette Carving 3D Viewer");
+        VulkanContext app(800, 600, APP_TITLE);
         app.run();
     }
     catch (const std::exception& e) {

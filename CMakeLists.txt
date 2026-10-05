@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.19)
-project(Silhouette3DViewer)
+project(VulkanTemplate)
+
+# Display name used for the window title and VkApplicationInfo
+set(APP_TITLE "Vulkan Template")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -39,6 +42,8 @@ set(SRC_FILES
 
 # Executable
 add_executable(${PROJECT_NAME} ${SRC_FILES})
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE APP_TITLE="${APP_TITLE}")
 
 # Include directories
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${GLM_INCLUDE_DIR})

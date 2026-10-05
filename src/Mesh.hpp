@@ -2,6 +2,7 @@
 
 #include <vulkan/vulkan.h>
 #include <glm/glm.hpp>
+#include <memory>
 #include <vector>
 #include "VulkanBuffer.hpp"
 
@@ -19,15 +20,15 @@ public:
         const std::vector<Vertex>& vertices,
         const std::vector<uint32_t>& indices);
 
-    ~Mesh();
+    virtual ~Mesh() = default; // deleted through Mesh* (e.g. CubeMesh)
 
     void bind(VkCommandBuffer commandBuffer) const;
     void draw(VkCommandBuffer commandBuffer) const;
 
 private:
     VkDevice device;
-    VulkanBuffer* vertexBuffer;
-    VulkanBuffer* indexBuffer;
+    std::unique_ptr<VulkanBuffer> vertexBuffer;
+    std::unique_ptr<VulkanBuffer> indexBuffer;
 
     uint32_t indexCount;
 };

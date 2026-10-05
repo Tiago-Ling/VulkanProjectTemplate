@@ -7,12 +7,12 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-VulkanInstance::VulkanInstance(bool enableValidation)
+VulkanInstance::VulkanInstance(const char* appName, bool enableValidation)
     : validationEnabled(enableValidation) {
     if (validationEnabled && !checkValidationLayerSupport()) {
         throw std::runtime_error("Validation layers requested but not available!");
     }
-    createInstance();
+    createInstance(appName);
     if (validationEnabled) {
         setupDebugMessenger();
     }
@@ -64,12 +64,12 @@ bool VulkanInstance::checkValidationLayerSupport() {
     return true;
 }
 
-void VulkanInstance::createInstance() {
+void VulkanInstance::createInstance(const char* appName) {
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    appInfo.pApplicationName = "Silhouette Carving Vulkan App";
+    appInfo.pApplicationName = appName;
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.pEngineName = "CustomEngine";
+    appInfo.pEngineName = "No Engine";
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.apiVersion = VK_API_VERSION_1_3;
 

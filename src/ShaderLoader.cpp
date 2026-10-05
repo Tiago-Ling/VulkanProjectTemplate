@@ -1,23 +1,11 @@
 #include "ShaderLoader.hpp"
+#include "Utils.hpp"
 #include <fstream>
 #include <stdexcept>
 
 // Read a binary .spv file and return its contents
 std::vector<char> ShaderLoader::readSPIRV(const std::string& filename) {
-    std::ifstream file(filename, std::ios::ate | std::ios::binary); // open at end to get size
-
-    if (!file.is_open()) {
-        throw std::runtime_error("Failed to open shader file: " + filename);
-    }
-
-    size_t fileSize = (size_t)file.tellg();
-    std::vector<char> buffer(fileSize);
-
-    file.seekg(0);
-    file.read(buffer.data(), fileSize);
-    file.close();
-
-    return buffer;
+    return readBinaryFile(filename);
 }
 
 // Create a Vulkan shader module from binary SPIR-V code

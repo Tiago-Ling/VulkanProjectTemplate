@@ -52,7 +52,6 @@ void VulkanCommand::recordCommandBuffer(
     VkFramebuffer framebuffer,
     VkExtent2D extent,
     Mesh* mesh,
-    Camera* camera,
     VkPipelineLayout pipelineLayout,
     VkDescriptorSet descriptorSet)
 {

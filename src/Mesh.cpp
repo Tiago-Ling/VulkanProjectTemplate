@@ -36,7 +36,7 @@ Mesh::Mesh(VkDevice device,
     : device(device), indexCount(static_cast<uint32_t>(indices.size())) {
 
     VkDeviceSize vertexSize = sizeof(vertices[0]) * vertices.size();
-    vertexBuffer = new VulkanBuffer(
+    vertexBuffer = std::make_unique<VulkanBuffer>(
         device, physicalDevice,
         vertexSize,
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
@@ -45,19 +45,13 @@ Mesh::Mesh(VkDevice device,
     vertexBuffer->copyData(vertices.data(), vertexSize);
 
     VkDeviceSize indexSize = sizeof(indices[0]) * indices.size();
-    indexBuffer = new VulkanBuffer(
+    indexBuffer = std::make_unique<VulkanBuffer>(
         device, physicalDevice,
         indexSize,
         VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
     );
     indexBuffer->copyData(indices.data(), indexSize);
-}
-
-// Destructor
-Mesh::~Mesh() {
-    delete vertexBuffer;
-    delete indexBuffer;
 }
 
 // Bind vertex and index buffers for drawing

@@ -14,7 +14,13 @@ struct MVP {
 
 VulkanContext::VulkanContext(uint32_t w, uint32_t h, const char* t)
     : width(w), height(h), title(t) {
-    init();
+    try {
+        init();
+    }
+    catch (...) {
+        cleanup(); // the destructor does not run when the constructor throws
+        throw;
+    }
 }
 
 VulkanContext::~VulkanContext() {
@@ -24,32 +30,32 @@ VulkanContext::~VulkanContext() {
 void VulkanContext::init() {
     LOG_INFO("Initializing Vulkan Context...");
 
-    vulkanWindow = new VulkanWindow(width, height, title);
+    vulkanWindow = std::make_unique<VulkanWindow>(width, height, title);
     window = vulkanWindow->getGLFWWindow();
     Input::init(window);
 
 #ifdef NDEBUG
-    instance = new VulkanInstance(false);
+    instance = std::make_unique<VulkanInstance>(title, false);
 #else
-    instance = new VulkanInstance(true); // requires VK_LAYER_KHRONOS_validation
+    instance = std::make_unique<VulkanInstance>(title, true); // requires VK_LAYER_KHRONOS_validation
 #endif
     vulkanWindow->createAndGetSurface(instance->getInstance());
 
-    device = new VulkanDevice(instance->getInstance(), vulkanWindow->getSurface());
+    device = std::make_unique<VulkanDevice>(instance->getInstance(), vulkanWindow->getSurface());
 
     uint32_t fbWidth, fbHeight;
     vulkanWindow->getFramebufferSize(fbWidth, fbHeight);
-    swapchain = new VulkanSwapchain(device->getPhysicalDevice(), device->getDevice(), vulkanWindow->getSurface(),
+    swapchain = std::make_unique<VulkanSwapchain>(device->getPhysicalDevice(), device->getDevice(), vulkanWindow->getSurface(),
         device->getGraphicsQueueFamilyIndex(), device->getPresentQueueFamilyIndex(), fbWidth, fbHeight);
 
     depthFormat = device->findDepthFormat();
     createDepthResources();
 
-    renderPass = new VulkanRenderPass(device->getDevice(), swapchain->getImageFormat(), depthFormat);
-    framebuffer = new VulkanFramebuffer(device->getDevice(), renderPass->get(), swapchain->getImageViews(),
+    renderPass = std::make_unique<VulkanRenderPass>(device->getDevice(), swapchain->getImageFormat(), depthFormat);
+    framebuffer = std::make_unique<VulkanFramebuffer>(device->getDevice(), renderPass->get(), swapchain->getImageViews(),
         depthImage->getImageView(), swapchain->getExtent());
 
-    pipeline = new VulkanPipeline(
+    pipeline = std::make_unique<VulkanPipeline>(
         device->getDevice(),
         renderPass->get(),
         "vert.spv",
@@ -60,7 +66,7 @@ void VulkanContext::init() {
     VkDeviceSize bufferSize = sizeof(MVP);
     uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-        uniformBuffers[i] = new VulkanBuffer(
+        uniformBuffers[i] = std::make_unique<VulkanBuffer>(
             device->getDevice(),
             device->getPhysicalDevice(),
             bufferSize,
@@ -112,7 +118,7 @@ void VulkanContext::init() {
         vkUpdateDescriptorSets(device->getDevice(), 1, &descriptorWrite, 0, nullptr);
     }
 
-    command = new VulkanCommand(
+    command = std::make_unique<VulkanCommand>(
         device->getDevice(),
         device->getGraphicsQueueFamilyIndex(),
         renderPass->get(),
@@ -120,11 +126,11 @@ void VulkanContext::init() {
         MAX_FRAMES_IN_FLIGHT
     );
 
-    sync = new VulkanSync(device->getDevice(), MAX_FRAMES_IN_FLIGHT, swapchain->getImageViews().size());
+    sync = std::make_unique<VulkanSync>(device->getDevice(), MAX_FRAMES_IN_FLIGHT, swapchain->getImageViews().size());
     VkExtent2D extent = swapchain->getExtent();
-    camera = new Camera(45.0f, extent.width / (float)extent.height, 0.1f, 100.0f);
-    timer = new Timer();
-    mesh = new CubeMesh(device->getDevice(), device->getPhysicalDevice());
+    camera = std::make_unique<Camera>(45.0f, extent.width / (float)extent.height, 0.1f, 100.0f);
+    timer = std::make_unique<Timer>();
+    mesh = std::make_unique<CubeMesh>(device->getDevice(), device->getPhysicalDevice());
 
     LOG_INFO("Vulkan Context Initialized.");
 }
@@ -132,7 +138,7 @@ void VulkanContext::init() {
 // Depth buffer matching the current swapchain extent (one is enough: frames render sequentially on one queue)
 void VulkanContext::createDepthResources() {
     VkExtent2D extent = swapchain->getExtent();
-    depthImage = new VulkanImage(
+    depthImage = std::make_unique<VulkanImage>(
         device->getDevice(),
         device->getPhysicalDevice(),
         extent.width,
@@ -158,19 +164,19 @@ void VulkanContext::recreateSwapchain() {
     uint32_t fbWidth, fbHeight;
     vulkanWindow->getFramebufferSize(fbWidth, fbHeight);
 
-    delete framebuffer;
-    delete depthImage;
+    framebuffer.reset();
+    depthImage.reset();
 
     // Create the new swapchain while the old one is still alive, then retire the old one
-    VulkanSwapchain* oldSwapchain = swapchain;
-    swapchain = new VulkanSwapchain(device->getPhysicalDevice(), device->getDevice(), vulkanWindow->getSurface(),
+    std::unique_ptr<VulkanSwapchain> oldSwapchain = std::move(swapchain);
+    swapchain = std::make_unique<VulkanSwapchain>(device->getPhysicalDevice(), device->getDevice(), vulkanWindow->getSurface(),
         device->getGraphicsQueueFamilyIndex(), device->getPresentQueueFamilyIndex(),
         fbWidth, fbHeight, oldSwapchain->getSwapchain());
-    delete oldSwapchain;
+    oldSwapchain.reset();
 
     // The render pass and pipeline are kept: the surface format does not change and viewport/scissor are dynamic
     createDepthResources();
-    framebuffer = new VulkanFramebuffer(device->getDevice(), renderPass->get(), swapchain->getImageViews(),
+    framebuffer = std::make_unique<VulkanFramebuffer>(device->getDevice(), renderPass->get(), swapchain->getImageViews(),
         depthImage->getImageView(), swapchain->getExtent());
 
     sync->recreateImageSemaphores(swapchain->getImageViews().size());
@@ -228,8 +234,7 @@ void VulkanContext::drawFrame() {
         static_cast<uint32_t>(frameIndex),
         framebuffer->getFramebuffers()[imageIndex],
         swapchain->getExtent(),
-        mesh,
-        camera,
+        mesh.get(),
         pipeline->getLayout(),
         descriptorSets[frameIndex]
     );
@@ -276,32 +281,36 @@ void VulkanContext::drawFrame() {
 void VulkanContext::cleanup() {
     LOG_INFO("Cleaning up...");
 
-    vkDeviceWaitIdle(device->getDevice());
-
-    for (auto buf : uniformBuffers) {
-        delete buf;
+    // Safe after a partial init: every step checks what was actually created
+    if (device) {
+        vkDeviceWaitIdle(device->getDevice());
     }
 
-    vkDestroyDescriptorPool(device->getDevice(), descriptorPool, nullptr);
+    uniformBuffers.clear();
 
-    delete mesh;
-    delete camera;
-    delete timer;
-    delete sync;
-    delete command;
-    delete pipeline;
-    delete framebuffer;
-    delete depthImage;
-    delete renderPass;
-    delete swapchain;
-    delete device;
-    
+    if (descriptorPool != VK_NULL_HANDLE) {
+        vkDestroyDescriptorPool(device->getDevice(), descriptorPool, nullptr);
+        descriptorPool = VK_NULL_HANDLE;
+    }
 
-    // 🔽 Manually destroy surface if not handled in VulkanWindow
-    vkDestroySurfaceKHR(instance->getInstance(), vulkanWindow->getSurface(), nullptr);
+    mesh.reset();
+    camera.reset();
+    timer.reset();
+    sync.reset();
+    command.reset();
+    pipeline.reset();
+    framebuffer.reset();
+    depthImage.reset();
+    renderPass.reset();
+    swapchain.reset();
+    device.reset();
 
-    delete vulkanWindow;
-    delete instance;
+    // The surface needs the instance, so it is destroyed here rather than by VulkanWindow
+    if (instance && vulkanWindow && vulkanWindow->getSurface() != VK_NULL_HANDLE) {
+        vkDestroySurfaceKHR(instance->getInstance(), vulkanWindow->getSurface(), nullptr);
+        vulkanWindow->setSurface(VK_NULL_HANDLE);
+    }
 
-    glfwTerminate();
+    vulkanWindow.reset(); // also terminates GLFW
+    instance.reset();
 }

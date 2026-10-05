@@ -51,6 +51,22 @@ inline std::vector<char> readBinaryFile(const std::string& filename) {
     return buffer;
 }
 
+// ===== Memory Type Lookup =====
+// Finds a memory type index matching the type filter and required property flags
+inline uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+    VkPhysicalDeviceMemoryProperties memProperties;
+    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
+
+    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+        if ((typeFilter & (1 << i)) &&
+            (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+            return i;
+        }
+    }
+
+    throw std::runtime_error("Failed to find suitable memory type!");
+}
+
 // ===== Debug Macro =====
 // Print current line and file
 #define DEBUG_POINT() \

@@ -3,6 +3,7 @@
 #include <vulkan/vulkan.h>
 #include <vector>
 #include <optional>
+#include "Utils.hpp"
 
 class VulkanDevice {
 public:
@@ -31,7 +32,9 @@ public:
     VkFormat findDepthFormat() const;
 
     // Utility to find suitable memory type (used when creating buffers/images)
-    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
+    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const {
+        return ::findMemoryType(physicalDevice, typeFilter, properties);
+    }
 
 private:
     // Vulkan handles
