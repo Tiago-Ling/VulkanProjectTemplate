@@ -30,7 +30,9 @@ namespace {
 VulkanInstance::VulkanInstance(const char* appName, uint32_t appVersion, bool enableValidation)
     : validationEnabled(enableValidation) {
     if (validationEnabled && !checkValidationLayerSupport()) {
-        throw std::runtime_error("Validation layers requested but not available!");
+        LOG_WARN("Validation layer " << validationLayers[0] << " not found (install the Vulkan SDK or "
+            << "your distribution's validation layers package); continuing without validation");
+        validationEnabled = false;
     }
     try {
         createInstance(appName, appVersion);

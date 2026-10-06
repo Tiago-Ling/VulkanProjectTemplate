@@ -77,7 +77,7 @@ void VulkanImage::createImage(uint32_t width,
         throw std::runtime_error("Failed to allocate image memory!");
     }
 
-    vkBindImageMemory(device, image, imageMemory, 0);
+    VK_CHECK(vkBindImageMemory(device, image, imageMemory, 0));
 }
 
 // Create an image view for this image (color, depth, etc.)

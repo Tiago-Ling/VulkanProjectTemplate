@@ -62,7 +62,7 @@ void VulkanBuffer::createBuffer(VkDeviceSize size,
         throw std::runtime_error("Failed to allocate buffer memory!");
     }
 
-    vkBindBufferMemory(device, buffer, bufferMemory, 0);
+    VK_CHECK(vkBindBufferMemory(device, buffer, bufferMemory, 0));
 
     // Map host-visible memory once instead of on every write
     if (properties & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) {

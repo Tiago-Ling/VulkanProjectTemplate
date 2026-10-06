@@ -18,7 +18,7 @@ A small, modular Vulkan 1.3 starting point in modern C++, built with CMake. It o
 - **Validation layers** in Debug builds, including synchronization validation, with warnings and errors routed through the app's logger and Vulkan objects labeled with debug names
 - Mesh data uploaded through a staging buffer into GPU-only memory; per-frame uniform buffers stay persistently mapped
 - Uniform buffer + descriptor set for model/view/projection matrices
-- Camera, input (keyboard and mouse delta), timer and math helpers
+- Camera, timer and math helpers, and input with held and per-frame key and mouse button states, mouse and scroll deltas, and cursor capture
 - GLSL shaders compiled to SPIR-V for Vulkan 1.3 by the build (with debug info in Debug builds), rebuilt when included files change, and loaded from beside the executable
 - An `assets/` folder copied next to the executable on every build, for textures, models and other files
 
@@ -27,7 +27,7 @@ A small, modular Vulkan 1.3 starting point in modern C++, built with CMake. It o
 - A C++17 compiler (GCC, Clang or MSVC)
 - CMake 3.21 or newer
 - Vulkan 1.3 capable GPU and driver
-- Vulkan headers and loader, `glslc`, and (for Debug builds) the Khronos validation layer
+- Vulkan headers and loader, `glslc`, and (recommended for Debug builds) the Khronos validation layer; without it, Debug builds run without validation and log a warning
 - GLFW 3 and GLM
 
 ### Arch Linux

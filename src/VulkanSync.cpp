@@ -1,4 +1,5 @@
 #include "VulkanSync.hpp"
+#include "Utils.hpp"
 #include <stdexcept>
 
 // Constructor: create semaphores and fences
@@ -77,14 +78,14 @@ void VulkanSync::recreateImageSemaphores(size_t swapchainImageCount) {
     createImageSemaphores(swapchainImageCount);
 }
 
-// Wait for fence of a given frame
+// Wait for fence of a given frame (throws on VK_ERROR_DEVICE_LOST and other failures)
 void VulkanSync::waitForFrame(size_t frameIndex) const {
-    vkWaitForFences(device, 1, &inFlightFences[frameIndex], VK_TRUE, UINT64_MAX);
+    VK_CHECK(vkWaitForFences(device, 1, &inFlightFences[frameIndex], VK_TRUE, UINT64_MAX));
 }
 
 // Reset fence after usage
 void VulkanSync::resetFence(size_t frameIndex) const {
-    vkResetFences(device, 1, &inFlightFences[frameIndex]);
+    VK_CHECK(vkResetFences(device, 1, &inFlightFences[frameIndex]));
 }
 
 // Accessors

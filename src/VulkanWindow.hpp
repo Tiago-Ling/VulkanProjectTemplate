@@ -33,17 +33,12 @@ public:
     // Blocks until the window has a non-zero framebuffer (e.g. while minimized)
     void waitWhileMinimized() const;
 
+    // Events are polled by Input::pollEvents(), which also updates key and mouse state
     bool shouldClose() const;
-    void pollEvents() const;
-    uint32_t getWidth() const;
-    uint32_t getHeight() const;
 
 private:
     GLFWwindow* window = nullptr;
     VkSurfaceKHR surface = VK_NULL_HANDLE;
-    uint32_t width;
-    uint32_t height;
-    std::string title;
     bool framebufferResized = false;
 
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);

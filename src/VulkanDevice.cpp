@@ -259,9 +259,15 @@ void VulkanDevice::immediateSubmit(const std::function<void(VkCommandBuffer)>& r
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    vkBeginCommandBuffer(cmd, &beginInfo);
-    record(cmd);
-    vkEndCommandBuffer(cmd);
+    try {
+        VK_CHECK(vkBeginCommandBuffer(cmd, &beginInfo));
+        record(cmd);
+        VK_CHECK(vkEndCommandBuffer(cmd));
+    }
+    catch (...) {
+        vkFreeCommandBuffers(device, uploadCommandPool, 1, &cmd);
+        throw;
+    }
 
     VkFenceCreateInfo fenceInfo{};
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
@@ -282,14 +288,14 @@ void VulkanDevice::immediateSubmit(const std::function<void(VkCommandBuffer)>& r
 
     VkResult result = vkQueueSubmit2(graphicsQueue, 1, &submitInfo, fence);
     if (result == VK_SUCCESS) {
-        vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX);
+        result = vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX);
     }
 
     vkDestroyFence(device, fence, nullptr);
     vkFreeCommandBuffers(device, uploadCommandPool, 1, &cmd);
 
     if (result != VK_SUCCESS) {
-        throw std::runtime_error("Failed to submit upload commands!");
+        throw std::runtime_error("Upload commands failed with VkResult " + std::to_string(result));
     }
 }
 

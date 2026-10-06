@@ -2,9 +2,16 @@
 #include "Utils.hpp"
 #include <stdexcept>
 
+namespace {
+    // GLFW reports most failures (missing display, unsupported platform, ...) only through this callback
+    void glfwErrorCallback(int error, const char* description) {
+        LOG_ERROR("[GLFW] " << description << " (error 0x" << std::hex << error << std::dec << ")");
+    }
+}
+
 // Constructor: create GLFW window and initialize members
-VulkanWindow::VulkanWindow(uint32_t width, uint32_t height, const std::string& title)
-    : width(width), height(height), title(title) {
+VulkanWindow::VulkanWindow(uint32_t width, uint32_t height, const std::string& title) {
+    glfwSetErrorCallback(glfwErrorCallback); // may be set before glfwInit
 
     // Initialize GLFW
     if (!glfwInit()) {
@@ -46,7 +53,6 @@ VkSurfaceKHR VulkanWindow::createAndGetSurface(VkInstance instance) {
     return surface;
 }
 
-
 // Flag resizes so the swapchain gets recreated on the next frame
 void VulkanWindow::framebufferResizeCallback(GLFWwindow* window, int /*width*/, int /*height*/) {
     auto* self = static_cast<VulkanWindow*>(glfwGetWindowUserPointer(window));
@@ -72,19 +78,4 @@ void VulkanWindow::waitWhileMinimized() const {
 // Check if the window should close (user pressed close)
 bool VulkanWindow::shouldClose() const {
     return glfwWindowShouldClose(window);
-}
-
-// Poll window/input events (must be called every frame)
-void VulkanWindow::pollEvents() const {
-    glfwPollEvents();
-}
-
-// Get window width
-uint32_t VulkanWindow::getWidth() const {
-    return width;
-}
-
-// Get window height
-uint32_t VulkanWindow::getHeight() const {
-    return height;
 }

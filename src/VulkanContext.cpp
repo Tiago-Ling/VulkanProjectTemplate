@@ -38,7 +38,7 @@ void VulkanContext::init() {
 #ifdef NDEBUG
     instance = std::make_unique<VulkanInstance>(title, appVersion, false);
 #else
-    instance = std::make_unique<VulkanInstance>(title, appVersion, true); // requires VK_LAYER_KHRONOS_validation
+    instance = std::make_unique<VulkanInstance>(title, appVersion, true); // skipped with a warning if the layer is missing
 #endif
     vulkanWindow->createAndGetSurface(instance->getInstance());
 
@@ -194,7 +194,7 @@ void VulkanContext::recreateSwapchain() {
         return;
     }
 
-    vkDeviceWaitIdle(device->getDevice());
+    VK_CHECK(vkDeviceWaitIdle(device->getDevice()));
     vulkanWindow->resetResizedFlag();
 
     uint32_t fbWidth, fbHeight;
@@ -227,7 +227,7 @@ void VulkanContext::run() {
         drawFrame();
     }
 
-    vkDeviceWaitIdle(device->getDevice());
+    VK_CHECK(vkDeviceWaitIdle(device->getDevice()));
 }
 
 void VulkanContext::drawFrame() {
@@ -333,7 +333,7 @@ void VulkanContext::cleanup() {
 
     // Safe after a partial init: every step checks what was actually created
     if (device) {
-        vkDeviceWaitIdle(device->getDevice());
+        vkDeviceWaitIdle(device->getDevice()); // result ignored: cleanup runs from the destructor and must not throw
     }
 
     uniformBuffers.clear();
