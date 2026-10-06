@@ -27,7 +27,7 @@ A small, modular Vulkan 1.3 starting point in modern C++, built with CMake. It o
 - A C++17 compiler (GCC, Clang or MSVC)
 - CMake 3.21 or newer
 - Vulkan 1.3 capable GPU and driver
-- Vulkan headers and loader, `glslc`, and (recommended for Debug builds) the Khronos validation layer; without it, Debug builds run without validation and log a warning
+- Vulkan headers and loader, `glslc`, and (recommended for Debug builds) the Khronos validation layer; without it, Debug builds run without validation and log a warning. Synchronization validation needs layer 1.3.280 or newer (older layers report false hazards), so it is skipped with a warning on older ones such as Ubuntu 24.04's package
 - GLFW 3 and GLM
 
 ### Arch Linux
@@ -67,7 +67,7 @@ cmake --build build
 
 ## Continuous integration
 
-`.github/workflows/build.yml` builds Debug and Release on Linux and Windows on every push and pull request. The Linux Debug job also runs the app for 300 frames on lavapipe (Mesa's CPU Vulkan driver) in a virtual X display, with validation and synchronization validation enabled, so validation errors fail the build even without a GPU.
+`.github/workflows/build.yml` builds Debug and Release on Linux and Windows on every push and pull request. The Linux Debug job also runs the app for 300 frames on lavapipe (Mesa's CPU Vulkan driver) in a virtual X display, with validation and synchronization validation enabled, so validation errors fail the build even without a GPU. It uses the validation layer from the LunarG SDK (`VULKAN_SDK_VERSION` in the workflow), cached between runs, because Ubuntu's packaged layer is too old for synchronization validation.
 
 To run the same check locally on Linux, install lavapipe and Xvfb (`vulkan-swrast` and `xorg-server-xvfb` on Arch, `mesa-vulkan-drivers` and `xvfb` on Ubuntu) and run a Debug build:
 

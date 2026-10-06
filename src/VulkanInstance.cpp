@@ -22,6 +22,21 @@ namespace {
         }
         return false;
     }
+
+    // Vulkan version the layer was built for (VkLayerProperties::specVersion), or 0 if it is not installed
+    uint32_t layerSpecVersion(const char* layerName) {
+        uint32_t count = 0;
+        vkEnumerateInstanceLayerProperties(&count, nullptr);
+        std::vector<VkLayerProperties> layers(count);
+        vkEnumerateInstanceLayerProperties(&count, layers.data());
+
+        for (const auto& layer : layers) {
+            if (strcmp(layerName, layer.layerName) == 0) {
+                return layer.specVersion;
+            }
+        }
+        return 0;
+    }
 }
 
 VulkanInstance::VulkanInstance(const char* appName, uint32_t appVersion, bool enableValidation)
@@ -108,9 +123,8 @@ void VulkanInstance::createInstance(const char* appName, uint32_t appVersion) {
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
 
-    // Synchronization validation reports missing or incorrect barriers and semaphores. It is off by default:
-    // newer layers enable it through VK_EXT_layer_settings (Vulkan headers 1.3.272+), older layers through
-    // the deprecated VK_EXT_validation_features
+    // Synchronization validation reports missing or incorrect barriers and semaphores. It is off by default and
+    // enabled through VK_EXT_layer_settings (Vulkan headers 1.3.272+), or else the deprecated VK_EXT_validation_features
     const VkValidationFeatureEnableEXT syncFeature = VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT;
     VkValidationFeaturesEXT validationFeatures{};
     validationFeatures.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
@@ -140,20 +154,32 @@ void VulkanInstance::createInstance(const char* appName, uint32_t appVersion) {
         populateDebugMessengerCreateInfo(debugCreateInfo);
         createInfo.pNext = &debugCreateInfo;
 
+        // Layers before 1.3.280 report false PRESENT_AFTER_WRITE hazards when a semaphore signal at ALL_COMMANDS
+        // orders the transition to PRESENT_SRC (Vulkan-ValidationLayers issue #7479), so they skip sync validation
+        const uint32_t layerVersion = layerSpecVersion(validationLayers[0]);
+        const bool syncSupported = layerVersion >= VK_MAKE_API_VERSION(0, 1, 3, 280);
+
         bool syncValidation = false;
 #ifdef VK_EXT_layer_settings
-        if (layerHasExtension(validationLayers[0], VK_EXT_LAYER_SETTINGS_EXTENSION_NAME)) {
+        if (syncSupported && layerHasExtension(validationLayers[0], VK_EXT_LAYER_SETTINGS_EXTENSION_NAME)) {
             extensions.push_back(VK_EXT_LAYER_SETTINGS_EXTENSION_NAME);
             debugCreateInfo.pNext = &layerSettingsInfo;
             syncValidation = true;
         }
 #endif
-        if (!syncValidation && layerHasExtension(validationLayers[0], VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME)) {
+        if (syncSupported && !syncValidation
+            && layerHasExtension(validationLayers[0], VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME)) {
             extensions.push_back(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME);
             debugCreateInfo.pNext = &validationFeatures;
             syncValidation = true;
         }
-        if (!syncValidation) {
+
+        if (!syncSupported) {
+            LOG_WARN("Validation layer " << VK_API_VERSION_MAJOR(layerVersion) << "." << VK_API_VERSION_MINOR(layerVersion)
+                << "." << VK_API_VERSION_PATCH(layerVersion) << " is older than 1.3.280, which fixed false "
+                << "synchronization hazards; synchronization validation is off (update the layer to enable it)");
+        }
+        else if (!syncValidation) {
             LOG_WARN("Validation layer supports neither " << VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME << " nor "
                 << "VK_EXT_layer_settings; synchronization validation is off");
         }
