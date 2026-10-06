@@ -72,7 +72,7 @@ cmake --build build
 To run the same check locally on Linux, install lavapipe and Xvfb (`vulkan-swrast` and `xorg-server-xvfb` on Arch, `mesa-vulkan-drivers` and `xvfb` on Ubuntu) and run a Debug build:
 
 ```bash
-env -u WAYLAND_DISPLAY VK_DRIVER_FILES=$(ls /usr/share/vulkan/icd.d/lvp_icd.*.json) \
+env -u WAYLAND_DISPLAY VK_DRIVER_FILES=$(ls /usr/share/vulkan/icd.d/lvp_icd*.json) \
     xvfb-run -a -s "-screen 0 1280x720x24" ./build/VulkanTemplate --frames 300
 ```
 

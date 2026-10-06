@@ -53,7 +53,9 @@ jobs:
         if: matrix.config == 'Debug'
         timeout-minutes: 5
         run: |
-          icd=$(ls /usr/share/vulkan/icd.d/lvp_icd.*.json)
+          # Mesa 25+ installs lvp_icd.json; older releases used lvp_icd.<arch>.json
+          icd=$(ls /usr/share/vulkan/icd.d/lvp_icd*.json 2>/dev/null | head -n 1)
+          test -n "$icd" || { echo "lavapipe ICD not found; available:"; ls /usr/share/vulkan/icd.d; exit 1; }
           VK_DRIVER_FILES="$icd" xvfb-run -a -s "-screen 0 1280x720x24" "build/$APP_NAME" --frames 300
 
   windows:
