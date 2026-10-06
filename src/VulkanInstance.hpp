@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
+#include <atomic>
 #include <vector>
 #include <string>
 
@@ -18,7 +19,12 @@ public:
     // Validation also enables VK_EXT_debug_utils (debug messenger and object names)
     bool isValidationEnabled() const { return validationEnabled; }
 
+    // Validation errors reported so far by any instance, including during destruction
+    static uint32_t getValidationErrorCount() { return validationErrorCount; }
+
 private:
+    static inline std::atomic<uint32_t> validationErrorCount{ 0 }; // the callback may run on driver threads
+
     void destroy();
 
     VkInstance instance = VK_NULL_HANDLE;

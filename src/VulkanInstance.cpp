@@ -189,6 +189,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanInstance::debugCallback(
     const VkDebugUtilsMessengerCallbackDataEXT* callbackData,
     void* /*userData*/) {
     if (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
+        ++validationErrorCount;
         LOG_ERROR("[Vulkan] " << callbackData->pMessage);
     }
     else {

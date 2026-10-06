@@ -62,6 +62,19 @@ cmake --build build
 - Ninja and Makefile builds also write `compile_commands.json` to the build directory for clangd and other tools.
 - On Windows, `cmake -S . -B build -G "Visual Studio 17 2022"` generates a solution with `VulkanTemplate` as the startup project (or open the folder directly in Visual Studio).
 - On laptops with hybrid graphics the discrete GPU is chosen automatically; the selected GPU is printed at startup.
+- `--frames N` exits after rendering N frames, for automated tests.
+- The app exits with a failure code if the validation layer reported any errors, after printing how many.
+
+## Continuous integration
+
+`.github/workflows/build.yml` builds Debug and Release on Linux and Windows on every push and pull request. The Linux Debug job also runs the app for 300 frames on lavapipe (Mesa's CPU Vulkan driver) in a virtual X display, with validation and synchronization validation enabled, so validation errors fail the build even without a GPU.
+
+To run the same check locally on Linux, install lavapipe and Xvfb (`vulkan-swrast` and `xorg-server-xvfb` on Arch, `mesa-vulkan-drivers` and `xvfb` on Ubuntu) and run a Debug build:
+
+```bash
+env -u WAYLAND_DISPLAY VK_DRIVER_FILES=$(ls /usr/share/vulkan/icd.d/lvp_icd.*.json) \
+    xvfb-run -a -s "-screen 0 1280x720x24" ./build/VulkanTemplate --frames 300
+```
 
 ## Project structure
 

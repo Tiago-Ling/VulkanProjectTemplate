@@ -28,6 +28,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y cmake ninja-build libvulkan-dev glslc libglfw3-dev libglm-dev
 
+      # Lavapipe (Mesa's CPU Vulkan driver), the validation layer and a virtual X display for the run step
+      - name: Install runtime test dependencies
+        if: matrix.config == 'Debug'
+        run: sudo apt-get install -y mesa-vulkan-drivers vulkan-validationlayers xvfb
+
       - name: Configure
         run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.config }}
 
@@ -40,6 +45,16 @@ jobs:
           name=$(sed -n 's/^CMAKE_PROJECT_NAME:STATIC=//p' build/CMakeCache.txt)
           test -n "$name" || { echo "CMAKE_PROJECT_NAME not found in build/CMakeCache.txt"; exit 1; }
           test -x "build/$name" && test -f build/shaders/vert.spv && test -f build/shaders/frag.spv
+          echo "APP_NAME=$name" >> "$GITHUB_ENV"
+
+      # Renders a few hundred frames with validation and synchronization validation (Debug builds);
+      # the app exits with an error on any validation error, crash or failed Vulkan call
+      - name: Run with validation on lavapipe
+        if: matrix.config == 'Debug'
+        timeout-minutes: 5
+        run: |
+          icd=$(ls /usr/share/vulkan/icd.d/lvp_icd.*.json)
+          VK_DRIVER_FILES="$icd" xvfb-run -a -s "-screen 0 1280x720x24" "build/$APP_NAME" --frames 300
 
   windows:
     name: Windows (${{ matrix.config }})

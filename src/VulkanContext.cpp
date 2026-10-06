@@ -220,8 +220,8 @@ void VulkanContext::recreateSwapchain() {
     setSwapchainDebugNames();
 }
 
-void VulkanContext::run() {
-    while (!vulkanWindow->shouldClose()) {
+void VulkanContext::run(uint64_t frameLimit) {
+    for (uint64_t frame = 0; !vulkanWindow->shouldClose() && (frameLimit == 0 || frame < frameLimit); ++frame) {
         Input::pollEvents(); // polls GLFW events and updates key/mouse state
         timer->update();
         drawFrame();

@@ -32,7 +32,8 @@ public:
     ~VulkanContext();
     VulkanContext(const VulkanContext&) = delete;
     VulkanContext& operator=(const VulkanContext&) = delete;
-    void run();
+    // Runs until the window is closed, or for frameLimit frames when it is not 0 (e.g. for automated tests)
+    void run(uint64_t frameLimit = 0);
 
 private:
     void init();
