@@ -7,8 +7,6 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-// VK_EXT_layer_settings (used for synchronization validation) needs Vulkan headers 1.3.272 or newer
-#ifdef VK_EXT_layer_settings
 namespace {
     // True if the given layer provides the given instance extension
     bool layerHasExtension(const char* layerName, const char* extensionName) {
@@ -25,7 +23,6 @@ namespace {
         return false;
     }
 }
-#endif
 
 VulkanInstance::VulkanInstance(const char* appName, uint32_t appVersion, bool enableValidation)
     : validationEnabled(enableValidation) {
@@ -111,8 +108,16 @@ void VulkanInstance::createInstance(const char* appName, uint32_t appVersion) {
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
 
+    // Synchronization validation reports missing or incorrect barriers and semaphores. It is off by default:
+    // newer layers enable it through VK_EXT_layer_settings (Vulkan headers 1.3.272+), older layers through
+    // the deprecated VK_EXT_validation_features
+    const VkValidationFeatureEnableEXT syncFeature = VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT;
+    VkValidationFeaturesEXT validationFeatures{};
+    validationFeatures.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
+    validationFeatures.enabledValidationFeatureCount = 1;
+    validationFeatures.pEnabledValidationFeatures = &syncFeature;
+
 #ifdef VK_EXT_layer_settings
-    // Synchronization validation reports missing or incorrect barriers and semaphores
     const VkBool32 enableSyncValidation = VK_TRUE;
     VkLayerSettingEXT syncSetting{};
     syncSetting.pLayerName = validationLayers[0];
@@ -135,18 +140,23 @@ void VulkanInstance::createInstance(const char* appName, uint32_t appVersion) {
         populateDebugMessengerCreateInfo(debugCreateInfo);
         createInfo.pNext = &debugCreateInfo;
 
+        bool syncValidation = false;
 #ifdef VK_EXT_layer_settings
         if (layerHasExtension(validationLayers[0], VK_EXT_LAYER_SETTINGS_EXTENSION_NAME)) {
             extensions.push_back(VK_EXT_LAYER_SETTINGS_EXTENSION_NAME);
             debugCreateInfo.pNext = &layerSettingsInfo;
+            syncValidation = true;
         }
-        else {
-            LOG_WARN("Validation layer lacks " << VK_EXT_LAYER_SETTINGS_EXTENSION_NAME
-                << "; synchronization validation is off");
-        }
-#else
-        LOG_WARN("Vulkan headers predate VK_EXT_layer_settings (1.3.272); synchronization validation is off");
 #endif
+        if (!syncValidation && layerHasExtension(validationLayers[0], VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME)) {
+            extensions.push_back(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME);
+            debugCreateInfo.pNext = &validationFeatures;
+            syncValidation = true;
+        }
+        if (!syncValidation) {
+            LOG_WARN("Validation layer supports neither " << VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME << " nor "
+                << "VK_EXT_layer_settings; synchronization validation is off");
+        }
     }
     else {
         createInfo.enabledLayerCount = 0;
